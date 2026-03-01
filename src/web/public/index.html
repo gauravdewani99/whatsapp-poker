@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Poker Bot</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111b21;
+      color: #e9edef;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    code {
+      background: #111b21;
+      color: #00a884;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ========================================
+       LANDING VIEW — Card Flip UI
+       ======================================== */
+
+    .landing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    /* Ambient glow */
+    .ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .glow-1 { width: 420px; height: 420px; background: #00a884; top: -120px; left: -120px; }
+    .glow-2 { width: 320px; height: 320px; background: #00a884; bottom: -100px; right: -100px; }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+      margin-bottom: 48px;
+      z-index: 1;
+    }
+    .brand h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .tagline {
+      font-size: 0.95rem;
+      color: #8696a0;
+      margin-top: 8px;
+    }
+
+    /* Cards container */
+    .cards-container {
+      display: flex;
+      gap: 32px;
+      z-index: 1;
+    }
+
+    /* 3D Card Flip */
+    .card-wrapper {
+      width: 280px;
+      height: 400px;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-wrapper.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    /* Card FRONT — poker back design */
+    .card-front {
+      background: linear-gradient(135deg, #1a3a2a 0%, #0d2818 100%);
+      border: 2px solid rgba(0, 168, 132, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-back-design {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 24px;
+    }
+
+    .card-pattern {
+      width: 80%;
+      height: 65%;
+      border: 2px solid rgba(0, 168, 132, 0.25);
+      border-radius: 10px;
+      background:
+        repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 8px,
+          rgba(0, 168, 132, 0.06) 8px,
+          rgba(0, 168, 132, 0.06) 16px
+        ),
+        repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 8px,
+          rgba(0, 168, 132, 0.04) 8px,
+          rgba(0, 168, 132, 0.04) 16px
+        );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-suit-icon {
+      font-size: 3rem;
+      opacity: 0.25;
+      user-select: none;
+    }
+
+    .card-label {
+      position: absolute;
+      bottom: 28px;
+      color: #00a884;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .card-tap-hint {
+      position: absolute;
+      bottom: 12px;
+      color: rgba(134, 150, 160, 0.6);
+      font-size: 0.65rem;
+      letter-spacing: 0.03em;
+    }
+
+    /* Card BACK — glassmorphism content */
+    .card-back {
+      transform: rotateY(180deg);
+      background: rgba(31, 44, 51, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-content {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+    }
+
+    .card-content h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .card-content .card-desc {
+      color: #8696a0;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .card-icon {
+      font-size: 2.5rem;
+      margin-bottom: 14px;
+      user-select: none;
+    }
+
+    /* Create session button on card */
+    .btn-card {
+      background: #00a884;
+      color: #111b21;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 28px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: auto;
+      width: 100%;
+    }
+
+    .btn-card:hover { background: #06cf9c; }
+    .btn-card:active { transform: scale(0.98); }
+    .btn-card:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .card-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #3b4a54;
+      border-top-color: #00a884;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 16px 0;
+    }
+
+    .card-error {
+      color: #f15c6d;
+      font-size: 0.78rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+
+    /* Instructions on card back */
+    .card-content.instructions {
+      text-align: left;
+      overflow-y: auto;
+    }
+
+    .card-content.instructions h2 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .steps {
+      list-style: none;
+      counter-reset: steps;
+      padding: 0;
+      width: 100%;
+    }
+
+    .steps li {
+      counter-increment: steps;
+      position: relative;
+      padding-left: 28px;
+      margin-bottom: 14px;
+    }
+
+    .steps li:last-child { margin-bottom: 0; }
+
+    .steps li::before {
+      content: counter(steps);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #00a884;
+      color: #111b21;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .steps li strong {
+      display: block;
+      font-size: 0.82rem;
+      margin-bottom: 2px;
+    }
+
+    .steps li span,
+    .steps li .cmds {
+      color: #8696a0;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .steps li .cmds {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .card-hint {
+      color: #8696a0;
+      font-size: 0.68rem;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ========================================
+       SESSION VIEW — QR / Pairing
+       ======================================== */
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+      max-width: 820px;
+      width: 90vw;
+      max-height: 90vh;
+    }
+
+    .panel {
+      background: #1f2c33;
+      border-radius: 16px;
+      padding: 36px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    .panel-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .panel-main h1 { font-size: 1.5rem; margin-bottom: 6px; }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #8696a0;
+      margin-bottom: 28px;
+    }
+
+    .qr-area {
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    #qr-container {
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #qr-container canvas,
+    #qr-container img { display: block !important; }
+
+    .connected-icon {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .connected-icon .checkmark {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #00a884;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+
+    .status-text {
+      font-size: 0.9rem;
+      color: #8696a0;
+      min-height: 1.4em;
+    }
+
+    .error-text {
+      color: #f15c6d;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .spinner {
+      display: none;
+      width: 44px;
+      height: 44px;
+      border: 4px solid #3b4a54;
+      border-top-color: #00a884;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .btn-start {
+      display: inline-block;
+      background: #00a884;
+      color: #111b21;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      padding: 14px 36px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-start:hover { background: #06cf9c; }
+    .btn-start:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Pairing code styles */
+    .pairing-code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: #00a884;
+      background: #111b21;
+      padding: 16px 28px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .link-toggle {
+      color: #00a884;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 8px;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .link-toggle:hover { color: #06cf9c; }
+
+    .phone-input-group {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .phone-input-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #3b4a54;
+      background: #111b21;
+      color: #e9edef;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      text-align: center;
+    }
+
+    .phone-input-group input:focus { border-color: #00a884; }
+    .phone-input-group input::placeholder { color: #8696a0; }
+
+    .phone-input-group .btn-start {
+      width: 100%;
+      padding: 12px;
+      font-size: 0.9rem;
+    }
+
+    /* Session guide panel */
+    .guide { overflow-y: auto; }
+
+    .guide h2 {
+      font-size: 0.9rem;
+      color: #e9edef;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .guide ol {
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .guide ol > li {
+      counter-increment: steps;
+      position: relative;
+      padding-left: 32px;
+      margin-bottom: 16px;
+    }
+
+    .guide ol > li:last-child { margin-bottom: 0; }
+
+    .guide ol > li::before {
+      content: counter(steps);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #00a884;
+      color: #111b21;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .guide li strong {
+      display: block;
+      color: #e9edef;
+      font-size: 0.85rem;
+      margin-bottom: 3px;
+    }
+
+    .guide li span {
+      color: #8696a0;
+      font-size: 0.78rem;
+      line-height: 1.5;
+    }
+
+    .commands-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+    }
+
+    .footer-note {
+      color: #8696a0;
+      font-size: 0.7rem;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #2a3942;
+    }
+
+    /* ========================================
+       RESPONSIVE
+       ======================================== */
+
+    @media (max-width: 640px) {
+      body { overflow: auto; height: auto; min-height: 100vh; padding: 16px; }
+
+      /* Landing cards */
+      .landing { padding: 24px 16px; }
+      .brand { margin-bottom: 32px; }
+      .brand h1 { font-size: 1.5rem; }
+      .cards-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        width: 100%;
+      }
+      .card-wrapper {
+        width: 100%;
+        max-width: 300px;
+        height: 380px;
+      }
+
+      /* Session layout */
+      .layout {
+        grid-template-columns: 1fr;
+        max-width: 100%;
+        width: 100%;
+        max-height: none;
+      }
+      .panel { padding: 24px; }
+      .guide details summary {
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #e9edef;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .guide details summary::marker { color: #00a884; }
+      .guide h2.desktop-only { display: none; }
+      .guide details.mobile-only { display: block; }
+    }
+
+    @media (min-width: 641px) {
+      .guide details.mobile-only { display: none; }
+      .guide .desktop-guide { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== LANDING VIEW (/) ===== -->
+  <div id="landing-view" class="landing">
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <header class="brand">
+      <h1>WhatsApp Poker Bot</h1>
+      <p class="tagline">Play Texas Hold'em in any WhatsApp group</p>
+    </header>
+
+    <div class="cards-container">
+
+      <!-- Card 1: Initiate Poker Chat -->
+      <div class="card-wrapper" id="card-initiate">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <div class="card-back-design">
+              <div class="card-pattern">
+                <span class="card-suit-icon">&spades;</span>
+              </div>
+              <span class="card-label">Initiate Poker Chat</span>
+              <span class="card-tap-hint">tap to flip</span>
+            </div>
+          </div>
+          <div class="card-face card-back">
+            <div class="card-content">
+              <div class="card-icon">&spades;&#65039;</div>
+              <h2>Start a Session</h2>
+              <p class="card-desc">Create a bot instance linked to your WhatsApp. You'll get a QR code to scan.</p>
+              <div id="card-loading" class="card-spinner hidden"></div>
+              <button class="btn-card" id="btn-create" onclick="handleCreateSession(event)">Create Session</button>
+              <p class="card-error" id="card-error"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: How to Play -->
+      <div class="card-wrapper" id="card-howto">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <div class="card-back-design">
+              <div class="card-pattern">
+                <span class="card-suit-icon">&hearts;</span>
+              </div>
+              <span class="card-label">How to Play</span>
+              <span class="card-tap-hint">tap to flip</span>
+            </div>
+          </div>
+          <div class="card-face card-back">
+            <div class="card-content instructions">
+              <h2>How to Play</h2>
+              <ol class="steps">
+                <li>
+                  <strong>Create a session</strong>
+                  <span>Flip the first card &amp; tap "Create Session"</span>
+                </li>
+                <li>
+                  <strong>Scan the QR code</strong>
+                  <span>WhatsApp &rarr; Linked Devices &rarr; Link</span>
+                </li>
+                <li>
+                  <strong>Activate in a group</strong>
+                  <span>Type <code>!play</code> in any group chat</span>
+                </li>
+                <li>
+                  <strong>Start playing</strong>
+                  <div class="cmds">
+                    <code>!poker start 50/100</code>
+                    <code>!poker join 5000</code>
+                    <code>!poker deal</code>
+                  </div>
+                </li>
+              </ol>
+              <p class="card-hint">Type <code>!help</code> in any group for all commands</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SESSION VIEW (/s/:id) ===== -->
+  <div id="session-view" class="layout hidden">
+    <div class="panel panel-main">
+      <h1>WhatsApp Poker Bot</h1>
+      <p class="subtitle">Connect your WhatsApp to activate the bot</p>
+      <div class="qr-area">
+        <div id="qr-container"></div>
+        <div id="pairing-code-display" style="display:none;">
+          <div class="pairing-code" id="pairing-code-text"></div>
+        </div>
+        <div class="connected-icon" id="connected-icon">
+          <div class="checkmark">&#10003;</div>
+          <span style="color:#00a884; font-weight:600;">Connected</span>
+        </div>
+        <div class="spinner" id="spinner"></div>
+      </div>
+      <p class="status-text" id="status-text">Initializing...</p>
+      <button class="link-toggle" id="toggle-pairing" style="display:none;" onclick="showPhoneInput()">Can't scan? Link with phone number</button>
+      <div class="phone-input-group" id="phone-input-group">
+        <input type="tel" id="phone-input" placeholder="e.g. 12025550108" />
+        <button class="btn-start" id="btn-phone-link" onclick="createPairingSession()">Send Pairing Code</button>
+        <button class="link-toggle" onclick="hidePhoneInput()">Back to QR code</button>
+      </div>
+      <p class="error-text" id="session-error"></p>
+    </div>
+
+    <div class="panel guide">
+      <h2 class="desktop-only">How to Play</h2>
+      <details class="mobile-only"><summary>How to Play</summary>
+      <ol>
+        <li>
+          <strong>Scan the QR code</strong>
+          <span>WhatsApp &rarr; Linked Devices &rarr; Link</span>
+        </li>
+        <li>
+          <strong>Activate in a group</strong>
+          <span>Type <code>!play</code> in any group chat</span>
+        </li>
+        <li>
+          <strong>Start a game</strong>
+          <span>
+            <code>!poker start 50/100</code><br>
+            <code>!poker join 5000</code><br>
+            <code>!poker deal</code>
+          </span>
+        </li>
+        <li>
+          <strong>Play your hand</strong>
+          <div class="commands-row">
+            <code>!check</code>
+            <code>!call</code>
+            <code>!raise 500</code>
+            <code>!fold</code>
+            <code>!all-in</code>
+          </div>
+        </li>
+      </ol>
+      <p class="footer-note">Type <code>!help</code> in any group for all commands</p>
+      </details>
+      <div class="desktop-guide">
+        <ol>
+          <li>
+            <strong>Scan the QR code</strong>
+            <span>WhatsApp &rarr; Linked Devices &rarr; Link</span>
+          </li>
+          <li>
+            <strong>Activate in a group</strong>
+            <span>Type <code>!play</code> in any group chat</span>
+          </li>
+          <li>
+            <strong>Start a game</strong>
+            <span>
+              <code>!poker start 50/100</code><br>
+              <code>!poker join 5000</code><br>
+              <code>!poker deal</code>
+            </span>
+          </li>
+          <li>
+            <strong>Play your hand</strong>
+            <div class="commands-row">
+              <code>!check</code>
+              <code>!call</code>
+              <code>!raise 500</code>
+              <code>!fold</code>
+              <code>!all-in</code>
+            </div>
+          </li>
+        </ol>
+        <p class="footer-note">Type <code>!help</code> in any group for all commands</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Route: determine which view =====
+    const pathMatch = window.location.pathname.match(/^\/s\/([a-f0-9-]+)$/);
+    const sessionId = pathMatch ? pathMatch[1] : null;
+
+    const landingView = document.getElementById('landing-view');
+    const sessionView = document.getElementById('session-view');
+
+    if (sessionId) {
+      landingView.classList.add('hidden');
+      sessionView.classList.remove('hidden');
+      initSessionView(sessionId);
+    }
+
+    // ===== Landing: card flip handlers =====
+    document.getElementById('card-initiate').addEventListener('click', function(e) {
+      // Don't toggle flip when clicking the button or error text
+      if (e.target.closest('.btn-card') || e.target.closest('.card-error')) return;
+      this.classList.toggle('flipped');
+    });
+
+    document.getElementById('card-howto').addEventListener('click', function() {
+      this.classList.toggle('flipped');
+    });
+
+    // ===== Landing: create session =====
+    async function handleCreateSession(e) {
+      e.stopPropagation(); // Don't trigger card flip
+      const btn = document.getElementById('btn-create');
+      const errEl = document.getElementById('card-error');
+      const loadingEl = document.getElementById('card-loading');
+
+      errEl.textContent = '';
+      btn.classList.add('hidden');
+      loadingEl.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/session', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create session');
+        window.location.href = '/s/' + data.sessionId;
+      } catch (err) {
+        loadingEl.classList.add('hidden');
+        btn.classList.remove('hidden');
+        errEl.textContent = err.message;
+      }
+    }
+
+    // ===== Phone number pairing helpers =====
+    function showPhoneInput() {
+      document.getElementById('toggle-pairing').style.display = 'none';
+      document.getElementById('phone-input-group').style.display = 'flex';
+      document.getElementById('phone-input').focus();
+    }
+
+    function hidePhoneInput() {
+      document.getElementById('phone-input-group').style.display = 'none';
+      document.getElementById('toggle-pairing').style.display = 'block';
+    }
+
+    async function createPairingSession() {
+      const phoneInput = document.getElementById('phone-input');
+      const btn = document.getElementById('btn-phone-link');
+      const errEl = document.getElementById('session-error');
+      const phone = phoneInput.value.replace(/[\s\-\+\(\)]/g, '');
+
+      if (!phone || phone.length < 7) {
+        errEl.textContent = 'Enter a valid phone number with country code (e.g. 12025550108)';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: phone }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create session');
+        window.location.href = '/s/' + data.sessionId;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Send Pairing Code';
+      }
+    }
+
+    // ===== Session: QR + status =====
+    function initSessionView(sid) {
+      const statusText = document.getElementById('status-text');
+      const qrContainer = document.getElementById('qr-container');
+      const pairingCodeDisplay = document.getElementById('pairing-code-display');
+      const pairingCodeText = document.getElementById('pairing-code-text');
+      const connectedIcon = document.getElementById('connected-icon');
+      const spinner = document.getElementById('spinner');
+      const sessionError = document.getElementById('session-error');
+      const togglePairing = document.getElementById('toggle-pairing');
+      const phoneInputGroup = document.getElementById('phone-input-group');
+
+      let qrCode = null;
+      let currentStatus = 'stopped';
+      let isPairingMode = false;
+      let evtSource = null;
+
+      function showOnly(element) {
+        qrContainer.style.display = 'none';
+        pairingCodeDisplay.style.display = 'none';
+        connectedIcon.style.display = 'none';
+        spinner.style.display = 'none';
+        if (element) element.style.display = 'flex';
+      }
+
+      function formatPairingCode(code) {
+        if (code.length === 8) return code.slice(0, 4) + '-' + code.slice(4);
+        return code;
+      }
+
+      function updateUI(status, qr, pairingCode) {
+        currentStatus = status;
+        sessionError.style.display = 'none';
+
+        switch (status) {
+          case 'stopped':
+          case 'starting':
+            showOnly(spinner);
+            statusText.textContent = 'Initializing WhatsApp...';
+            togglePairing.style.display = 'none';
+            phoneInputGroup.style.display = 'none';
+            break;
+          case 'waiting_for_qr':
+            if (isPairingMode && pairingCode) {
+              pairingCodeText.textContent = formatPairingCode(pairingCode);
+              showOnly(pairingCodeDisplay);
+              statusText.textContent = 'Enter this code in WhatsApp > Linked Devices > Link a device';
+              togglePairing.style.display = 'none';
+              phoneInputGroup.style.display = 'none';
+            } else if (qr) {
+              renderQR(qr);
+              showOnly(qrContainer);
+              statusText.textContent = 'Scan the QR code with WhatsApp';
+              togglePairing.style.display = 'block';
+            }
+            break;
+          case 'connected':
+            showOnly(connectedIcon);
+            statusText.textContent = 'Bot is connected. Type !play in any group.';
+            togglePairing.style.display = 'none';
+            phoneInputGroup.style.display = 'none';
+            break;
+          case 'disconnected':
+            showOnly(spinner);
+            statusText.textContent = 'Reconnecting...';
+            togglePairing.style.display = 'none';
+            phoneInputGroup.style.display = 'none';
+            break;
+        }
+      }
+
+      function renderQR(data) {
+        qrContainer.innerHTML = '';
+        qrCode = new QRCode(qrContainer, {
+          text: data,
+          width: 180,
+          height: 180,
+          correctLevel: QRCode.CorrectLevel.L,
+        });
+        qrContainer.style.display = 'flex';
+      }
+
+      function showExpired() {
+        showOnly(null);
+        statusText.textContent = '';
+        togglePairing.style.display = 'none';
+        phoneInputGroup.style.display = 'none';
+        sessionError.textContent = 'Session expired or not found.';
+        sessionError.style.display = 'block';
+        const btn = document.createElement('button');
+        btn.className = 'btn-start';
+        btn.textContent = 'Start New Session';
+        btn.style.marginTop = '16px';
+        btn.onclick = () => { window.location.href = '/'; };
+        sessionError.parentElement.appendChild(btn);
+      }
+
+      function connectSSE() {
+        if (evtSource) evtSource.close();
+        evtSource = new EventSource('/api/session/' + sid + '/events');
+
+        evtSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'status') updateUI(data.status, null, null);
+            else if (data.type === 'qr') {
+              renderQR(data.qr);
+              showOnly(qrContainer);
+              statusText.textContent = 'Scan the QR code with WhatsApp';
+              togglePairing.style.display = 'block';
+            } else if (data.type === 'pairing_code') {
+              pairingCodeText.textContent = formatPairingCode(data.code);
+              if (currentStatus === 'waiting_for_qr' && isPairingMode) {
+                showOnly(pairingCodeDisplay);
+                statusText.textContent = 'Enter this code in WhatsApp > Linked Devices > Link a device';
+              }
+            } else if (data.type === 'mode' && data.mode === 'pairing') {
+              isPairingMode = true;
+            }
+          } catch {}
+        };
+
+        evtSource.onerror = () => {
+          evtSource.close();
+          fetch('/api/session/' + sid + '/status')
+            .then(r => {
+              if (r.status === 404) showExpired();
+              else setTimeout(connectSSE, 3000);
+            })
+            .catch(() => setTimeout(connectSSE, 3000));
+        };
+      }
+
+      // Initial fetch
+      fetch('/api/session/' + sid + '/status')
+        .then(r => {
+          if (r.status === 404) { showExpired(); return null; }
+          return r.json();
+        })
+        .then(data => {
+          if (data) {
+            if (data.isPairingMode) isPairingMode = true;
+            updateUI(data.status, data.qr, data.pairingCode);
+            connectSSE();
+          }
+        })
+        .catch(() => connectSSE());
+    }
+  </script>
+</body>
+</html>

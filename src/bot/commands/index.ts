@@ -1,0 +1,43 @@
+import type { CommandRegistry } from '../command-registry.js';
+import type { GroupActivationManager } from '../../state/group-activation.js';
+import { registerPlayCommand } from './play.js';
+import { registerStartCommand } from './start.js';
+import { registerJoinCommand } from './join.js';
+import { registerDealCommand } from './deal.js';
+import { registerLeaveCommand } from './leave.js';
+import { registerBetActions } from './bet-actions.js';
+import { registerStatusCommand } from './status.js';
+import { registerBalanceCommand } from './balance.js';
+import { registerCashoutCommand } from './cashout.js';
+import { registerHelpCommand } from './help.js';
+import { registerAdminCommands } from './admin.js';
+import { registerHistoryCommand } from './history.js';
+import { registerBanterCommands } from './banter.js';
+import { registerRebuyCommand } from './rebuy.js';
+import { registerStatsCommand } from './stats.js';
+import { registerRulesCommand } from './rules.js';
+import { registerStandingsCommand } from './standings.js';
+import { registerShowCommand } from './show.js';
+import { registerResetCommand } from './reset.js';
+
+export function registerAllCommands(registry: CommandRegistry, activationManager: GroupActivationManager): void {
+  registerPlayCommand(registry, activationManager);
+  registerStartCommand(registry);
+  registerJoinCommand(registry);
+  registerDealCommand(registry);
+  registerLeaveCommand(registry);
+  registerBetActions(registry);
+  registerStatusCommand(registry);
+  registerBalanceCommand(registry);
+  registerCashoutCommand(registry);
+  registerHelpCommand(registry);
+  registerAdminCommands(registry);
+  registerHistoryCommand(registry);
+  registerRebuyCommand(registry);
+  registerStatsCommand(registry);
+  registerRulesCommand(registry);
+  registerStandingsCommand(registry);
+  registerBanterCommands(registry);
+  registerShowCommand(registry);
+  registerResetCommand(registry);
+}
