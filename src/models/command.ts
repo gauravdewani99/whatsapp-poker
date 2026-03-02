@@ -1,12 +1,12 @@
 export type CommandName =
-  | 'play'
   | 'start' | 'join' | 'leave' | 'deal'
   | 'fold' | 'check' | 'call' | 'raise' | 'all-in'
-  | 'status' | 'balance' | 'cashout'
-  | 'help' | 'stop' | 'kick' | 'history' | 'rebuy' | 'stats' | 'rules' | 'standings'
+  | 'status' | 'cashout'
+  | 'help' | 'stop' | 'kick' | 'history' | 'rebuy' | 'stats' | 'rules' | 'stacks'
+  | 'totalbuyin' | 'groupstats'
   | 'taunt' | 'ragebait'
   | 'needle' | 'tight'
-  | 'show' | 'gg' | 'reset';
+  | 'show' | 'gg';
 
 export interface ParsedCommand {
   name: CommandName;

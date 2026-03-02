@@ -1,5 +1,6 @@
 import type { ParsedCommand, CommandResult } from '../../models/command.js';
 import type { CommandRegistry } from '../command-registry.js';
+import type { SeatPlayer } from '../../models/player.js';
 import { GameRepository } from '../../db/repositories/game-repo.js';
 import { getOccupiedSeats } from '../../engine/blinds.js';
 import { startTurnTimer } from './turn-timer-helper.js';
@@ -19,9 +20,21 @@ export function registerDealCommand(registry: CommandRegistry): void {
       return { error: 'A hand is already in progress.' };
     }
 
-    const activePlayers = getOccupiedSeats(table);
-    if (activePlayers.length < 2) {
-      return { error: 'Need at least 2 players to deal. Tell your friends to !poker join.' };
+    const seatedPlayers = table.seats.filter((s): s is SeatPlayer => s !== null);
+
+    // Block deal if any player has 0 chips
+    const bustedPlayers = seatedPlayers.filter(s => s.chipStack === 0);
+    if (bustedPlayers.length > 0) {
+      const names = bustedPlayers.map(s => s.displayName).join(', ');
+      return {
+        error: `Can't deal \u2014 ${names} ${bustedPlayers.length === 1 ? 'has' : 'have'} 0 chips. They need to !poker rebuy or !poker leave first.`,
+      };
+    }
+
+    // Need at least 2 players with chips
+    const playersWithChips = seatedPlayers.filter(s => s.chipStack > 0);
+    if (playersWithChips.length < 2) {
+      return { error: 'Need at least 2 players with chips to deal. Tell your friends to !poker join.' };
     }
 
     // Mark game as active if first hand

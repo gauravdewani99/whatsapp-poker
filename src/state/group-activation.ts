@@ -40,4 +40,9 @@ export class GroupActivationManager {
   isActive(groupId: string): boolean {
     return this.activeGroups.has(groupId);
   }
+
+  /** Get all active group IDs (used by nudge scheduler). */
+  getActiveGroupIds(): string[] {
+    return Array.from(this.activeGroups);
+  }
 }

@@ -225,16 +225,25 @@ export function statusMessage(table: TableState): string {
   return lines.join('\n');
 }
 
-export function balanceMessage(name: string, balance: number): string {
-  return `\uD83D\uDCB0 *${name}* chip balance: *${formatChips(balance)}*`;
+export function welcomeMessage(): string {
+  return [
+    `\u2660\uFE0F *The House has entered the chat* \u2660\uFE0F`,
+    '',
+    `I'm your poker dealer. I handle the cards, chips & turns so you can focus on bluffing your friends.`,
+    '',
+    `*Quick start:*`,
+    `1. \`!poker start 50/100\` — open a table`,
+    `2. \`!poker join 10000\` — sit down`,
+    `3. \`!poker deal\` — let's go`,
+    '',
+    `Type *!help* for the full command list.`,
+    `Good luck \u2014 you'll need it. \uD83C\uDCCF`,
+  ].join('\n');
 }
 
 export function helpMessage(): string {
   return [
-    `\u2660\uFE0F *POKER BOT COMMANDS* \u2660\uFE0F`,
-    '',
-    '*Getting Started:*',
-    '!play - Activate the bot in this group',
+    `\u2660\uFE0F *THE HOUSE \u2014 COMMANDS* \u2660\uFE0F`,
     '',
     '*Game Management:*',
     '!poker start <sb>/<bb> - Start a table',
@@ -242,7 +251,7 @@ export function helpMessage(): string {
     '!poker deal - Deal a new hand',
     '!poker leave - Leave the table',
     '!poker stop - End the session',
-    '!poker reset - Reset all balances to 0',
+    '!poker kick <name> - Vote to kick a player',
     '',
     '*Betting:*',
     '!fold (!f) - Fold your hand',
@@ -253,8 +262,9 @@ export function helpMessage(): string {
     '',
     '*Info:*',
     '!status (!s) - Show table state',
-    '!balance (!bal) - Show your chips',
-    '!standings (!lb) - Leaderboard',
+    '!stacks (!lb) - Leaderboard & P/L',
+    '!totalbuyin - Buy-in report per player',
+    '!groupstats - All-time group stats',
     '!stats - Your win/loss stats',
     '!history - Last 5 hands',
     '!rules - Hand rankings & basics',
@@ -265,8 +275,6 @@ export function helpMessage(): string {
     '*Banter:*',
     '!taunt - Send a cheeky wink',
     '!ragebait - Random trash talk',
-    '!ragebait hindi - Hindi trash talk',
-    '!ragebait english - English trash talk',
     '!needle - Get under their skin',
     '!tight - Roast the folder',
     '!gg - Compliment the winner',

@@ -56,6 +56,20 @@ export const activatedGroups = sqliteTable('activated_groups', {
   activatedAt: text('activated_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const groupPlayerStats = sqliteTable('group_player_stats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  groupId: text('group_id').notNull(),
+  waId: text('wa_id').notNull(),
+  displayName: text('display_name').notNull(),
+  sessionsPlayed: integer('sessions_played').notNull().default(0),
+  handsPlayed: integer('hands_played').notNull().default(0),
+  handsWon: integer('hands_won').notNull().default(0),
+  totalBuyIn: integer('total_buy_in').notNull().default(0),
+  totalCashOut: integer('total_cash_out').notNull().default(0),
+  biggestPot: integer('biggest_pot').notNull().default(0),
+  lastPlayedAt: text('last_played_at'),
+});
+
 export const actions = sqliteTable('actions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   handId: integer('hand_id').notNull().references(() => hands.id),

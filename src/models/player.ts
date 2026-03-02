@@ -24,6 +24,10 @@ export interface SeatPlayer {
   currentBet: number;
   hasActed: boolean;
   buyInAmount: number;
+  /** Hands played in this session (incremented per hand) */
+  sessionHandsPlayed: number;
+  /** Hands won in this session (incremented per win) */
+  sessionHandsWon: number;
 }
 
 export function createSeatPlayer(
@@ -44,5 +48,7 @@ export function createSeatPlayer(
     currentBet: 0,
     hasActed: false,
     buyInAmount: buyIn,
+    sessionHandsPlayed: 0,
+    sessionHandsWon: 0,
   };
 }

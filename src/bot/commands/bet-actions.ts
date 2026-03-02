@@ -75,6 +75,14 @@ export function registerBetActions(registry: CommandRegistry): void {
                 pr.finalAction,
               );
               playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
+
+              // Track session-level stats for group stats
+              if (seat) {
+                seat.sessionHandsPlayed++;
+                if (pr.chipsAfter > pr.chipsBefore) {
+                  seat.sessionHandsWon++;
+                }
+              }
             }
           }
         } catch (err) {

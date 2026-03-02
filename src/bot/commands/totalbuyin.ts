@@ -3,8 +3,8 @@ import type { CommandRegistry } from '../command-registry.js';
 import type { SeatPlayer } from '../../models/player.js';
 import { formatChips } from '../../messages/formatter.js';
 
-export function registerStacksCommand(registry: CommandRegistry): void {
-  registry.register('stacks', (command: ParsedCommand): CommandResult => {
+export function registerTotalbuyinCommand(registry: CommandRegistry): void {
+  registry.register('totalbuyin', (command: ParsedCommand): CommandResult => {
     const tm = registry.getTableManager();
     const table = tm.getTable(command.groupId);
 
@@ -16,25 +16,24 @@ export function registerStacksCommand(registry: CommandRegistry): void {
       .filter((s): s is SeatPlayer => s !== null)
       .map(s => ({
         name: s.displayName,
-        stack: s.chipStack,
         buyIn: s.buyInAmount,
-        profit: s.chipStack - s.buyInAmount,
+        stack: s.chipStack,
+        pnl: s.chipStack - s.buyInAmount,
       }))
-      .sort((a, b) => b.profit - a.profit);
+      .sort((a, b) => b.pnl - a.pnl);
 
     if (players.length === 0) {
       return { error: 'No players at the table.' };
     }
 
-    const lines = players.map((p, i) => {
-      const sign = p.profit >= 0 ? '+' : '';
-      const medal = i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i + 1}.`;
-      return `${medal} *${p.name}* \u2014 ${formatChips(p.stack)} (${sign}${formatChips(p.profit)})`;
+    const lines = players.map(p => {
+      const sign = p.pnl >= 0 ? '+' : '';
+      return `\u2022 *${p.name}* \u2014 Buy-in: ${formatChips(p.buyIn)} | Stack: ${formatChips(p.stack)} | P&L: ${sign}${formatChips(p.pnl)}`;
     });
 
     return {
       groupMessage: [
-        '\uD83C\uDFC6 *Stacks*',
+        '\uD83D\uDCB0 *Buy-In Report*',
         '',
         ...lines,
       ].join('\n'),

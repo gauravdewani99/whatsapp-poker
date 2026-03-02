@@ -3,6 +3,7 @@ import type { BettingAction, GamePhase } from '../models/game.js';
 import type { CardString } from '../models/card.js';
 import type { SeatPlayer } from '../models/player.js';
 import type { CommandResult } from '../models/command.js';
+import { emptyPotState } from '../models/pot.js';
 import { Deck } from './deck.js';
 import { PotManager } from './pot-manager.js';
 import { evaluateHand, determineWinners, type EvaluatedHand } from './hand-evaluator.js';
@@ -64,6 +65,7 @@ export class GameRound {
     this.table.communityCards = [];
     this.table.actionHistory = [];
     this.potManager.reset();
+    this.table.potState = emptyPotState();
 
     // Reset all players for new hand
     for (const seat of this.table.seats) {

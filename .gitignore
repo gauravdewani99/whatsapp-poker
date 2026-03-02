@@ -8,3 +8,4 @@ data/
 *.db-wal
 .wwebjs_auth/
 .wwebjs_cache/
+baileys-auth/
