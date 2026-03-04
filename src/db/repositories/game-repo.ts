@@ -86,11 +86,11 @@ export class GameRepository {
       .all();
 
     return rows.map(row => {
-      const winners = JSON.parse(row.winnersJson || '[]') as Array<{ playerId: number; amount: number; hand: string }>;
+      const winners = JSON.parse(row.winnersJson || '[]') as Array<{ playerId: number; displayName?: string; amount: number; hand: string }>;
       const first = winners[0];
       return {
         handNumber: row.handNumber,
-        winner: first?.playerId?.toString() || 'Unknown',
+        winner: first?.displayName || first?.playerId?.toString() || 'Unknown',
         amount: first?.amount || row.potTotal,
         hand: first?.hand || '',
       };

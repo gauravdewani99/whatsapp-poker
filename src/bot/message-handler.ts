@@ -90,6 +90,79 @@ async function handleMessage(
   try {
     const result = await registry.execute(command);
 
+    // Reset idle timer on every successful command if a table is active
+    const tm = registry.getTableManager();
+    const idleTimer = registry.getIdleTimer();
+    if (idleTimer && tm.getTable(groupId)) {
+      idleTimer.resetTimer(groupId, async () => {
+        // Auto-close callback
+        try {
+          const table = tm.getTable(groupId);
+          if (!table) return;
+
+          // Find creator display name
+          const creatorSeat = table.seats.find(s => s?.waId === table.creatorWaId);
+          const creatorName = creatorSeat?.displayName
+            || table.leftPlayers.find(lp => lp.waId === table.creatorWaId)?.displayName
+            || 'friend';
+
+          // Return chips to seated players
+          const { PlayerRepository } = await import('../db/repositories/player-repo.js');
+          const { GroupStatsRepository } = await import('../db/repositories/group-stats-repo.js');
+          const { GameRepository } = await import('../db/repositories/game-repo.js');
+          const db = registry.getDB();
+          const playerRepo = new PlayerRepository(db);
+
+          const seatedPlayers = table.seats.filter((s): s is import('../models/player.js').SeatPlayer => s !== null);
+          for (const seat of seatedPlayers) {
+            const profile = playerRepo.findByWaId(seat.waId);
+            if (profile) {
+              playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+            }
+          }
+
+          // Record session stats (seated + left players)
+          const groupStatsRepo = new GroupStatsRepository(db);
+          const allSessionPlayers = [
+            ...seatedPlayers.map(seat => ({
+              waId: seat.waId,
+              displayName: seat.displayName,
+              buyIn: seat.buyInAmount,
+              cashOut: seat.chipStack,
+              handsPlayed: seat.sessionHandsPlayed,
+              handsWon: seat.sessionHandsWon,
+            })),
+            ...table.leftPlayers.map(lp => ({
+              waId: lp.waId,
+              displayName: lp.displayName,
+              buyIn: lp.buyInAmount,
+              cashOut: lp.cashOut,
+              handsPlayed: 0,
+              handsWon: 0,
+            })),
+          ];
+          groupStatsRepo.recordSessionEnd(groupId, allSessionPlayers);
+
+          // End game in DB
+          const gameRepo = new GameRepository(db);
+          gameRepo.endGame(table.gameId);
+
+          // Clear turn timer and remove table
+          const turnTimer = registry.getTurnTimer();
+          if (turnTimer) turnTimer.clearTimer(groupId);
+          tm.removeTable(groupId);
+
+          // Send auto-close message
+          await socket.sendMessage(groupId, {
+            text: `\u2660\uFE0F No activity for 10 minutes. The House is closing the table, *${creatorName}*. All chips returned. Until next time.`,
+          });
+          logger.info({ groupId, creatorName }, 'Table auto-closed due to inactivity');
+        } catch (err) {
+          logger.error({ err, groupId }, 'Failed to auto-close idle table');
+        }
+      });
+    }
+
     logger.debug({
       command: command.name,
       hasGroupMessage: !!result.groupMessage,

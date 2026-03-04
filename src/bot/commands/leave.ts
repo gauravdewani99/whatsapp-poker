@@ -33,6 +33,14 @@ export function registerLeaveCommand(registry: CommandRegistry): void {
       playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
     }
 
+    // Track left player for session stats & stacks display
+    table.leftPlayers.push({
+      displayName: seat.displayName,
+      waId: seat.waId,
+      buyInAmount: seat.buyInAmount,
+      cashOut: seat.chipStack,
+    });
+
     // Remove from seat
     table.seats[seatIdx] = null;
 

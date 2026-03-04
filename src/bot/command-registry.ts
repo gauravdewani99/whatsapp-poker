@@ -1,6 +1,7 @@
 import type { ParsedCommand, CommandResult, CommandName } from '../models/command.js';
 import type { TableManager } from '../state/table-manager.js';
 import type { TurnTimer } from '../state/turn-timer.js';
+import type { IdleTimer } from '../state/idle-timer.js';
 import type { KickVoteManager } from '../state/kick-vote-manager.js';
 import type { BotManager } from './bot-manager.js';
 import type { DB } from '../db/connection.js';
@@ -10,6 +11,7 @@ export type CommandHandler = (command: ParsedCommand) => CommandResult | Promise
 export class CommandRegistry {
   private handlers: Map<CommandName, CommandHandler> = new Map();
   private _turnTimer: TurnTimer | null = null;
+  private _idleTimer: IdleTimer | null = null;
   private _botManager: BotManager | null = null;
   private _kickVoteManager: KickVoteManager | null = null;
 
@@ -52,6 +54,14 @@ export class CommandRegistry {
 
   getBotManager(): BotManager | null {
     return this._botManager;
+  }
+
+  setIdleTimer(idleTimer: IdleTimer): void {
+    this._idleTimer = idleTimer;
+  }
+
+  getIdleTimer(): IdleTimer | null {
+    return this._idleTimer;
   }
 
   setKickVoteManager(kickVoteManager: KickVoteManager): void {

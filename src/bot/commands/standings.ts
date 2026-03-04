@@ -32,12 +32,24 @@ export function registerStacksCommand(registry: CommandRegistry): void {
       return `${medal} *${p.name}*: ${formatChips(p.stack)} (${sign}${formatChips(p.profit)})`;
     });
 
+    const parts = [
+      '\uD83C\uDFC6 *Stacks*',
+      '',
+      ...lines,
+    ];
+
+    // Show players who left mid-session
+    if (table.leftPlayers && table.leftPlayers.length > 0) {
+      parts.push('', '_Left:_');
+      for (const lp of table.leftPlayers) {
+        const profit = lp.cashOut - lp.buyInAmount;
+        const sign = profit >= 0 ? '+' : '';
+        parts.push(`_• ${lp.displayName}: cashed out ${formatChips(lp.cashOut)} (${sign}${formatChips(profit)})_`);
+      }
+    }
+
     return {
-      groupMessage: [
-        '\uD83C\uDFC6 *Stacks*',
-        '',
-        ...lines,
-      ].join('\n'),
+      groupMessage: parts.join('\n'),
     };
   });
 }

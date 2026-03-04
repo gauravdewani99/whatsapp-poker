@@ -45,11 +45,15 @@ export function registerBetActions(registry: CommandRegistry): void {
             // Determine winners from chip changes
             const winners = handResult.playerResults
               .filter(p => p.chipsAfter > p.chipsBefore)
-              .map(p => ({
-                playerId: p.playerId,
-                amount: p.chipsAfter - p.chipsBefore,
-                hand: p.finalAction === 'win_uncontested' ? 'Uncontested' : 'Showdown',
-              }));
+              .map(p => {
+                const seat = table.seats.find(s => s?.profileId === p.playerId);
+                return {
+                  playerId: p.playerId,
+                  displayName: seat?.displayName || 'Unknown',
+                  amount: p.chipsAfter - p.chipsBefore,
+                  hand: p.finalAction === 'win_uncontested' ? 'Uncontested' : 'Showdown',
+                };
+              });
 
             const potTotal = winners.reduce((sum, w) => sum + w.amount, 0);
 

@@ -35,12 +35,11 @@ export function registerAdminCommands(registry: CommandRegistry): void {
       }
     }
 
-    // Record persistent group stats
+    // Record persistent group stats (seated + left players)
     try {
       const groupStatsRepo = new GroupStatsRepository(db);
-      groupStatsRepo.recordSessionEnd(
-        command.groupId,
-        seatedPlayers.map(seat => ({
+      const allSessionPlayers = [
+        ...seatedPlayers.map(seat => ({
           waId: seat.waId,
           displayName: seat.displayName,
           buyIn: seat.buyInAmount,
@@ -48,7 +47,16 @@ export function registerAdminCommands(registry: CommandRegistry): void {
           handsPlayed: seat.sessionHandsPlayed,
           handsWon: seat.sessionHandsWon,
         })),
-      );
+        ...table.leftPlayers.map(lp => ({
+          waId: lp.waId,
+          displayName: lp.displayName,
+          buyIn: lp.buyInAmount,
+          cashOut: lp.cashOut,
+          handsPlayed: 0,
+          handsWon: 0,
+        })),
+      ];
+      groupStatsRepo.recordSessionEnd(command.groupId, allSessionPlayers);
     } catch (err) {
       logger.error({ err, groupId: command.groupId }, 'Failed to record group stats');
     }
@@ -57,8 +65,12 @@ export function registerAdminCommands(registry: CommandRegistry): void {
     const gameRepo = new GameRepository(db);
     gameRepo.endGame(table.gameId);
 
-    // Clear turn timer and remove table
+    // Clear turn timer, idle timer, and remove table
     clearTurnTimer(registry, command.groupId);
+    const idleTimer = registry.getIdleTimer();
+    if (idleTimer) {
+      idleTimer.clearTimer(command.groupId);
+    }
     tm.removeTable(command.groupId);
 
     return {

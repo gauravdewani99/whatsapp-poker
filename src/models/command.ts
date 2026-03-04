@@ -4,8 +4,10 @@ export type CommandName =
   | 'status' | 'cashout'
   | 'help' | 'stop' | 'kick' | 'history' | 'rebuy' | 'stats' | 'rules' | 'stacks'
   | 'buyins' | 'groupstats'
-  | 'taunt' | 'ragebait'
+  | 'sitout' | 'sitin' | 'feedback'
+  | 'ragebait'
   | 'needle' | 'tight'
+  | 'fish' | 'shame'
   | 'show' | 'gg';
 
 export interface ParsedCommand {

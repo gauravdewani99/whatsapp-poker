@@ -17,6 +17,8 @@ import { registerStacksCommand } from './standings.js';
 import { registerShowCommand } from './show.js';
 import { registerTotalbuyinCommand } from './totalbuyin.js';
 import { registerGroupstatsCommand } from './groupstats.js';
+import { registerSitoutCommands } from './sitout.js';
+import { registerFeedbackCommand } from './feedback.js';
 
 export function registerAllCommands(registry: CommandRegistry): void {
   registerStartCommand(registry);
@@ -37,4 +39,6 @@ export function registerAllCommands(registry: CommandRegistry): void {
   registerShowCommand(registry);
   registerTotalbuyinCommand(registry);
   registerGroupstatsCommand(registry);
+  registerSitoutCommands(registry);
+  registerFeedbackCommand(registry);
 }

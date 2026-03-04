@@ -96,33 +96,44 @@ export function actionMessage(player: SeatPlayer, action: BettingAction, amount:
   }
 }
 
-export function flopMessage(cards: CardString[], potTotal: number): string {
+/** Render active player stacks for street messages. */
+function activeStacks(table: TableState): string {
+  return table.seats
+    .filter((s): s is SeatPlayer => s !== null && s.isActive)
+    .map(s => `${s.displayName}: ${formatChips(s.chipStack)}`)
+    .join(' | ');
+}
+
+export function flopMessage(cards: CardString[], potTotal: number, table: TableState): string {
   return [
     `\u2500\u2500\u2500 *FLOP* \u2500\u2500\u2500`,
     '',
     `  ${renderCards(cards)}`,
     '',
     `Pot: *${formatChips(potTotal)}*`,
+    activeStacks(table),
   ].join('\n');
 }
 
-export function turnMessage(card: CardString, allCommunity: CardString[], potTotal: number): string {
+export function turnMessage(card: CardString, allCommunity: CardString[], potTotal: number, table: TableState): string {
   return [
     `\u2500\u2500\u2500 *TURN* \u2500\u2500\u2500`,
     '',
     `  ${renderCards(allCommunity)}`,
     '',
     `Pot: *${formatChips(potTotal)}*`,
+    activeStacks(table),
   ].join('\n');
 }
 
-export function riverMessage(card: CardString, allCommunity: CardString[], potTotal: number): string {
+export function riverMessage(card: CardString, allCommunity: CardString[], potTotal: number, table: TableState): string {
   return [
     `\u2500\u2500\u2500 *RIVER* \u2500\u2500\u2500`,
     '',
     `  ${renderCards(allCommunity)}`,
     '',
     `Pot: *${formatChips(potTotal)}*`,
+    activeStacks(table),
   ].join('\n');
 }
 
@@ -252,6 +263,8 @@ export function helpMessage(): string {
     '!poker leave - Leave the table',
     '!poker stop - End the session',
     '!poker kick <name> - Vote to kick a player',
+    '!sitout - Sit out (skip hands)',
+    '!sitin - Return to the table',
     '',
     '*Betting:*',
     '!fold (!f) - Fold your hand',
@@ -270,13 +283,15 @@ export function helpMessage(): string {
     '!rules - Hand rankings & basics',
     '!rebuy <amount> - Reload chips',
     '!show - Reveal your cards after a hand',
+    '!feedback <msg> - Send feedback to The House',
     '!help - Show this message',
     '',
     '*Banter:*',
-    '!taunt - Send a cheeky wink',
-    '!ragebait - Random trash talk',
+    '!ragebait (!rbh) - Hindi trash talk',
     '!needle - Get under their skin',
     '!tight - Roast the folder',
+    '!fish - Poetic roast for the aggressor',
+    '!shame - Tease the loser',
     '!gg - Compliment the winner',
   ].join('\n');
 }

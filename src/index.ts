@@ -9,6 +9,7 @@ import { GroupActivationManager } from './state/group-activation.js';
 import { TurnTimer } from './state/turn-timer.js';
 import { NudgeScheduler } from './bot/nudge-scheduler.js';
 import { KickVoteManager } from './state/kick-vote-manager.js';
+import { IdleTimer } from './state/idle-timer.js';
 import { initDatabase } from './db/connection.js';
 import { startWebServer } from './web/server.js';
 import { logger } from './utils/logger.js';
@@ -35,9 +36,11 @@ async function main() {
   const registry = new CommandRegistry(tableManager, db);
   registerAllCommands(registry);
 
-  // 3. Wire turn timer
+  // 3. Wire turn timer and idle timer
   const turnTimer = new TurnTimer();
   registry.setTurnTimer(turnTimer);
+  const idleTimer = new IdleTimer();
+  registry.setIdleTimer(idleTimer);
 
   // 4. Create single bot manager (Baileys)
   const botManager = new BotManager();
@@ -46,12 +49,13 @@ async function main() {
   // 5. Create kick vote manager & nudge scheduler
   const kickVoteManager = new KickVoteManager(botManager);
   registry.setKickVoteManager(kickVoteManager);
-  const nudgeScheduler = new NudgeScheduler(botManager, activationManager, db);
+  const nudgeScheduler = new NudgeScheduler(botManager, activationManager, db, tableManager);
 
   // Clear turn timers when bot disconnects
   botManager.on('status', (status: string) => {
     if (status === 'disconnected' || status === 'stopped') {
       turnTimer.clearAll();
+      idleTimer.clearAll();
       kickVoteManager.clearAll();
       nudgeScheduler.stop();
       logger.info({ status }, 'Cleared all timers and nudge scheduler due to bot status change');
@@ -81,6 +85,7 @@ async function main() {
   const shutdown = async () => {
     logger.info('Shutting down...');
     turnTimer.clearAll();
+    idleTimer.clearAll();
     kickVoteManager.clearAll();
     nudgeScheduler.stop();
     await botManager.stop();

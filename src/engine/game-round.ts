@@ -237,19 +237,19 @@ export class GameRound {
       case 'flop': {
         const flop = dealFromDeck(3);
         this.table.communityCards.push(...flop);
-        message = templates.flopMessage(flop, this.potManager.totalAmount);
+        message = templates.flopMessage(flop, this.potManager.totalAmount, this.table);
         break;
       }
       case 'turn': {
         const turn = dealFromDeck(1);
         this.table.communityCards.push(...turn);
-        message = templates.turnMessage(turn[0], this.table.communityCards, this.potManager.totalAmount);
+        message = templates.turnMessage(turn[0], this.table.communityCards, this.potManager.totalAmount, this.table);
         break;
       }
       case 'river': {
         const river = dealFromDeck(1);
         this.table.communityCards.push(...river);
-        message = templates.riverMessage(river[0], this.table.communityCards, this.potManager.totalAmount);
+        message = templates.riverMessage(river[0], this.table.communityCards, this.potManager.totalAmount, this.table);
         break;
       }
     }
@@ -275,21 +275,21 @@ export class GameRound {
             const flop = this.table.deck.slice(ridx, ridx + 3);
             ridx += 3;
             this.table.communityCards.push(...flop);
-            messages.push(templates.flopMessage(flop, this.potManager.totalAmount));
+            messages.push(templates.flopMessage(flop, this.potManager.totalAmount, this.table));
             break;
           }
           case 'turn': {
             const turn = this.table.deck.slice(ridx, ridx + 1);
             ridx += 1;
             this.table.communityCards.push(...turn);
-            messages.push(templates.turnMessage(turn[0], this.table.communityCards, this.potManager.totalAmount));
+            messages.push(templates.turnMessage(turn[0], this.table.communityCards, this.potManager.totalAmount, this.table));
             break;
           }
           case 'river': {
             const river = this.table.deck.slice(ridx, ridx + 1);
             ridx += 1;
             this.table.communityCards.push(...river);
-            messages.push(templates.riverMessage(river[0], this.table.communityCards, this.potManager.totalAmount));
+            messages.push(templates.riverMessage(river[0], this.table.communityCards, this.potManager.totalAmount, this.table));
             break;
           }
         }

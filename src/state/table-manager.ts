@@ -35,6 +35,7 @@ export class TableManager {
       lastRaiseSeatIndex: -1,
       currentMinRaise: config.bigBlind,
       actionHistory: [],
+      leftPlayers: [],
     };
 
     this.tables.set(groupId, table);

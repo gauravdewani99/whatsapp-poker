@@ -2,29 +2,29 @@ import type { ParsedCommand, CommandResult } from '../../models/command.js';
 import type { CommandRegistry } from '../command-registry.js';
 
 const NEEDLE_PHRASES = [
-  'Bhai tera call itna weak tha, ATM machine bhi decline kar de 💳❌',
+  'Tera call itna weak tha, ATM machine bhi decline kar de 💳❌',
   'Tu poker khelta hai ya donations deta hai? 🤲',
-  'Tere chips toh already mere hain, formality baaki hai bas 😏',
-  'Tera poker face toh WhatsApp pe bhi dikh raha hai 📱🤡',
-  'Bhai slow play mat kar, tera hand toh sabko pata hai 🔍',
+  'Tere chips toh already mere hain, formality baaki hai 😏',
+  'Tera poker face WhatsApp pe bhi dikh raha hai 📱🤡',
+  'Slow play mat kar, tera hand sabko pata hai 🔍',
   'Isse achha toh lottery kharid leta, odds better hote 🎫',
   'Tera bluff itna transparent hai, glass bhi sharmaye 🪟',
-  'Fold kar le bhai, dignity bachale apni thodi 🙏',
-  'Tune yeh call kaise kiya? Paisa jyada hai kya? 💸🤔',
-  'Bhai tujhe poker nahi, teen patti khelni chahiye 🃏',
+  'Fold kar le, dignity bacha le thodi 🙏',
+  'Yeh call kaise kiya? Paisa jyada hai kya? 💸',
+  'Tujhe poker nahi, teen patti khelni chahiye 🃏',
 ];
 
 const TIGHT_PHRASES = [
-  'Kitna tight khelega be? Khul ke ji, zindagi ek hi hai 😤',
-  'Bhai fold fold fold... tujhe dealer ne cards diye hain ya parking tickets? 🅿️',
+  'Kitna tight khelega? Khul ke ji, zindagi ek hi hai 😤',
+  'Fold fold fold… dealer ne cards diye hain ya parking tickets? 🅿️',
   'Itna tight mat khel, blood circulation ruk jayega 🩸',
   'Tera range itna tight hai, needle bhi na ghuse 🪡',
-  'Bhai tu poker player hai ya watchman? Sirf dekh raha hai 👀',
-  'Premium hands ka wait kar raha hai? Retirement tak milenge shayad 👴',
-  'Fold fold fold... tera nickname "Origami" rakh dete hain 📄',
-  'Abe kuch toh khel, blinds khaa rahe hain tujhe 🐛',
+  'Tu poker player hai ya watchman? Sirf dekh raha hai 👀',
+  'Premium hands ka wait? Retirement tak milenge shayad 👴',
+  'Fold fold fold… nickname "Origami" rakh dete hain 📄',
+  'Kuch toh khel, blinds khaa rahe hain tujhe 🐛',
   'Tu itna tight khelega toh log sochenge AFK hai 💤',
-  'Bhai poker hai, naukri nahi. Thoda risk le 🎰',
+  'Poker hai, naukri nahi. Thoda risk le 🎰',
 ];
 
 const RAGEBAIT_PHRASES = [
@@ -37,33 +37,40 @@ const RAGEBAIT_PHRASES = [
   'Abe gadhe, call kyun kiya?! 🤡',
   'Tujhe poker nahi, ludo khelna chahiye 🎲',
   'Bhai tu fish hai pakka 🐟',
-  'Abe chal hat, tere cards toh gande honge 🗑️',
+  'Chal hat, tere cards toh gande honge 🗑️',
   'Yeh banda har haath mein all-in karega kya?! 😂',
-  'Bhai rehne de, tu nahi jeetega aaj 📉',
+  'Rehne de, tu nahi jeetega aaj 📉',
   'Kitna ghatiya khelta hai tu yaar 🤮',
   'Abe ullu, yeh kya move tha?! 🦉',
   'Paisa barbaad bc 💸',
 ];
 
-const RAGEBAIT_ENGLISH_PHRASES = [
-  "You call THAT a bet? My grandma plays harder at bingo 🧓",
-  "Nice fold, coward. Were you scared of the flop or just life? 😱",
-  "You're basically a charity at this point. Thanks for the donation 💝",
-  "I've seen better poker from a random number generator 🤖",
-  "Please keep playing like this. My rent depends on it 🏠",
-  "Did you learn poker from a YouTube Shorts? 📱",
-  "Your stack is shrinking faster than your confidence 📉",
-  "That was the worst bluff since 'the check is in the mail' 📬",
-  "Are you even looking at your cards or just vibing? 🧘",
-  "Somewhere out there, a fish is calling YOU a fish 🐠",
-  "You play poker like you parallel park — poorly and with too much confidence 🚗",
-  "That call was so bad, even the dealer flinched 😬",
+const FISH_PHRASES = [
+  '🐟 Raise raise raise, all day long — your stack is shrinking, your reads are wrong.',
+  '🐟 The fish who bets with nothing in hand, will watch their chips turn into sand.',
+  '🐟 Big bets, small brain — a classic tale. The House has seen this movie, you always fail.',
+  '🐟 Swimming upstream with pocket air? Bold move. The river always wins.',
+  '🐟 All-in with vibes and a prayer — the poker gods have left the chat.',
+  '🐟 Bluff so big, even your cards are embarrassed. The House sees everything.',
+  '🐟 Splash the pot, feed the sharks. Another day, another donation.',
+  '🐟 You bet like you have aces. You play like you have 7-2 off. The House never forgets.',
+];
+
+const SHAME_PHRASES = [
+  '🪦 The House sends its condolences.',
+  '📉 That was painful to watch. Even The House looked away.',
+  '🫠 Somewhere, a poker tutorial is crying for you.',
+  '💀 That hand belongs in a crime scene, not a poker table.',
+  '🚨 Call the ambulance. Actually, call a coach first.',
+  '📦 Pack it up. The felt doesn\'t deserve this.',
+  '🕳️ If there was a hole in the table, you\'d crawl into it right now.',
+  '🧊 Stone cold loss. The House respects the commitment though.',
 ];
 
 const GG_COMPLIMENTS = [
-  'What a hand! 👏 Well played!',
+  'What a hand! 👏 Well played.',
   'Absolute masterclass. Take a bow 🎩',
-  "GG! You're on fire 🔥",
+  'GG! You\'re on fire 🔥',
   'Clean play, nothing but respect 🫡',
   'That was beautiful poker right there ✨',
   'Ice cold execution. Legend 🧊',
@@ -75,42 +82,32 @@ const GG_COMPLIMENTS = [
   'Take a victory lap, you earned it 🏆',
 ];
 
+function randomFrom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 export function registerBanterCommands(registry: CommandRegistry): void {
-  registry.register('taunt' , (_command: ParsedCommand): CommandResult => {
-    return {
-      groupMessage: '😉',
-    };
-  });
-
-  registry.register('ragebait' , (command: ParsedCommand): CommandResult => {
-    const lang = command.args[0]?.toLowerCase();
-    let pool: string[];
-
-    if (lang === 'hindi' || lang === 'h') {
-      pool = RAGEBAIT_PHRASES;
-    } else if (lang === 'english' || lang === 'e') {
-      pool = RAGEBAIT_ENGLISH_PHRASES;
-    } else {
-      // No arg or unrecognised → random from combined pool
-      pool = [...RAGEBAIT_PHRASES, ...RAGEBAIT_ENGLISH_PHRASES];
-    }
-
-    const random = pool[Math.floor(Math.random() * pool.length)];
-    return { groupMessage: random };
+  registry.register('ragebait', (_command: ParsedCommand): CommandResult => {
+    return { groupMessage: randomFrom(RAGEBAIT_PHRASES) };
   });
 
   registry.register('needle', (_command: ParsedCommand): CommandResult => {
-    const random = NEEDLE_PHRASES[Math.floor(Math.random() * NEEDLE_PHRASES.length)];
-    return { groupMessage: random };
+    return { groupMessage: randomFrom(NEEDLE_PHRASES) };
   });
 
   registry.register('tight', (_command: ParsedCommand): CommandResult => {
-    const random = TIGHT_PHRASES[Math.floor(Math.random() * TIGHT_PHRASES.length)];
-    return { groupMessage: random };
+    return { groupMessage: randomFrom(TIGHT_PHRASES) };
+  });
+
+  registry.register('fish', (_command: ParsedCommand): CommandResult => {
+    return { groupMessage: randomFrom(FISH_PHRASES) };
+  });
+
+  registry.register('shame', (_command: ParsedCommand): CommandResult => {
+    return { groupMessage: randomFrom(SHAME_PHRASES) };
   });
 
   registry.register('gg', (_command: ParsedCommand): CommandResult => {
-    const random = GG_COMPLIMENTS[Math.floor(Math.random() * GG_COMPLIMENTS.length)];
-    return { groupMessage: random };
+    return { groupMessage: randomFrom(GG_COMPLIMENTS) };
   });
 }

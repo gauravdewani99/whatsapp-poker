@@ -3,6 +3,13 @@ import type { SeatPlayer } from './player.js';
 import type { CardString } from './card.js';
 import type { PotState } from './pot.js';
 
+export interface LeftPlayer {
+  displayName: string;
+  waId: string;
+  buyInAmount: number;
+  cashOut: number;
+}
+
 export interface TableState {
   gameId: number;
   config: GameConfig;
@@ -21,4 +28,7 @@ export interface TableState {
   lastRaiseSeatIndex: number;
   currentMinRaise: number;
   actionHistory: BettingActionEvent[];
+
+  /** Players who left mid-session via !poker leave */
+  leftPlayers: LeftPlayer[];
 }

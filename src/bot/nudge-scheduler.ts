@@ -1,5 +1,6 @@
 import type { BotManager } from './bot-manager.js';
 import type { GroupActivationManager } from '../state/group-activation.js';
+import type { TableManager } from '../state/table-manager.js';
 import type { DB } from '../db/connection.js';
 import { GroupStatsRepository } from '../db/repositories/group-stats-repo.js';
 import { formatChips } from '../messages/formatter.js';
@@ -67,6 +68,7 @@ export class NudgeScheduler {
     private botManager: BotManager,
     private activationManager: GroupActivationManager,
     private db: DB,
+    private tableManager: TableManager,
   ) {
     this.groupStatsRepo = new GroupStatsRepository(db);
   }
@@ -105,6 +107,12 @@ export class NudgeScheduler {
 
     for (const groupId of groupIds) {
       try {
+        // Skip nudge if a table is active in this group
+        if (this.tableManager.hasTable(groupId)) {
+          logger.debug({ groupId }, 'Skipping nudge — table is active');
+          continue;
+        }
+
         const message = this.generateMessage(groupId);
         await this.botManager.sendGroupMessage(groupId, message);
         // Small delay between groups to avoid rate limiting
