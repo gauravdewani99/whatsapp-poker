@@ -50,7 +50,7 @@ export function registerJoinCommand(registry: CommandRegistry): void {
 
     // Check balance
     if (profile.chipBalance < buyIn) {
-      return { error: `Not enough chips. Your balance: ${profile.chipBalance}. Buy-in: ${buyIn}.` };
+      return { error: `Not enough chips. You have ${profile.chipBalance} but need ${buyIn}.` };
     }
 
     // Deduct buy-in from balance

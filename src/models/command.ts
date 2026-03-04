@@ -3,7 +3,7 @@ export type CommandName =
   | 'fold' | 'check' | 'call' | 'raise' | 'all-in'
   | 'status' | 'cashout'
   | 'help' | 'stop' | 'kick' | 'history' | 'rebuy' | 'stats' | 'rules' | 'stacks'
-  | 'totalbuyin' | 'groupstats'
+  | 'buyins' | 'groupstats'
   | 'taunt' | 'ragebait'
   | 'needle' | 'tight'
   | 'show' | 'gg';

@@ -4,7 +4,7 @@ import type { SeatPlayer } from '../../models/player.js';
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerTotalbuyinCommand(registry: CommandRegistry): void {
-  registry.register('totalbuyin', (command: ParsedCommand): CommandResult => {
+  registry.register('buyins', (command: ParsedCommand): CommandResult => {
     const tm = registry.getTableManager();
     const table = tm.getTable(command.groupId);
 
@@ -28,7 +28,7 @@ export function registerTotalbuyinCommand(registry: CommandRegistry): void {
 
     const lines = players.map(p => {
       const sign = p.pnl >= 0 ? '+' : '';
-      return `\u2022 *${p.name}* \u2014 Buy-in: ${formatChips(p.buyIn)} | Stack: ${formatChips(p.stack)} | P&L: ${sign}${formatChips(p.pnl)}`;
+      return `\u2022 *${p.name}*: Buy-in: ${formatChips(p.buyIn)} | Stack: ${formatChips(p.stack)} | P&L: ${sign}${formatChips(p.pnl)}`;
     });
 
     return {

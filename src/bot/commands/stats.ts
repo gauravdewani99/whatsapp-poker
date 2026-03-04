@@ -31,8 +31,6 @@ export function registerStatsCommand(registry: CommandRegistry): void {
         `Total buy-in: ${formatChips(profile.totalBuyIn)}`,
         `Total cash-out: ${formatChips(profile.totalCashOut)}`,
         `Net: *${profitSign}${formatChips(netProfit)}*`,
-        '',
-        `Balance: *${formatChips(profile.chipBalance)}*`,
       ].join('\n'),
     };
   });

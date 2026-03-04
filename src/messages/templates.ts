@@ -58,7 +58,7 @@ export function newHandMessage(table: TableState, positions: BlindPositions): st
 
   return [
     divider(),
-    `\uD83C\uDCCF *Hand #${table.handNumber}*`,
+    `\uD83C\uDCCF *New Hand*`,
     divider(),
     `Dealer: *${dealer.displayName}* \uD83C\uDD5B`,
     `Small Blind: ${sb.displayName} (${formatChips(table.config.smallBlind)})`,
@@ -197,7 +197,7 @@ export function statusMessage(table: TableState): string {
   const lines: string[] = [
     `\u2660\uFE0F *TABLE STATUS* \u2660\uFE0F`,
     '',
-    `Hand #${table.handNumber} | Phase: *${table.phase}*`,
+    `Phase: *${table.phase}*`,
     `Blinds: ${formatChips(table.config.smallBlind)}/${formatChips(table.config.bigBlind)} | Pot: *${formatChips(potTotal)}*`,
   ];
 
@@ -263,7 +263,7 @@ export function helpMessage(): string {
     '*Info:*',
     '!status (!s) - Show table state',
     '!stacks (!lb) - Leaderboard & P/L',
-    '!totalbuyin - Buy-in report per player',
+    '!buyins (!b) - Buy-in report per player',
     '!groupstats - All-time group stats',
     '!stats - Your win/loss stats',
     '!history - Last 5 hands',
@@ -291,7 +291,7 @@ export function historyMessage(hands: Array<{
 
   const lines = ['\uD83D\uDCDC *HAND HISTORY* \uD83D\uDCDC', ''];
   for (const h of hands) {
-    lines.push(`#${h.handNumber}: *${h.winner}* won ${formatChips(h.amount)} (${h.hand})`);
+    lines.push(`\u2022 *${h.winner}* won ${formatChips(h.amount)} (${h.hand})`);
   }
   return lines.join('\n');
 }

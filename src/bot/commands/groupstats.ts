@@ -19,7 +19,7 @@ export function registerGroupstatsCommand(registry: CommandRegistry): void {
         const pnl = s.totalCashOut - s.totalBuyIn;
         const sign = pnl >= 0 ? '+' : '';
         const medal = i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i + 1}.`;
-        return `${medal} *${s.displayName}* \u2014 ${sign}${formatChips(pnl)} (${s.sessionsPlayed} sessions, ${s.handsWon}/${s.handsPlayed} hands won)`;
+        return `${medal} *${s.displayName}*: ${sign}${formatChips(pnl)}`;
       });
 
     return {

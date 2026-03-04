@@ -51,7 +51,7 @@ export function registerRebuyCommand(registry: CommandRegistry): void {
 
     if (profile.chipBalance < amount) {
       return {
-        error: `Insufficient balance. You have ${formatChips(profile.chipBalance)} but need ${formatChips(amount)}.`,
+        error: `Not enough chips. You have ${formatChips(profile.chipBalance)} but need ${formatChips(amount)}.`,
       };
     }
 

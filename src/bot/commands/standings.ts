@@ -29,7 +29,7 @@ export function registerStacksCommand(registry: CommandRegistry): void {
     const lines = players.map((p, i) => {
       const sign = p.profit >= 0 ? '+' : '';
       const medal = i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `${i + 1}.`;
-      return `${medal} *${p.name}* \u2014 ${formatChips(p.stack)} (${sign}${formatChips(p.profit)})`;
+      return `${medal} *${p.name}*: ${formatChips(p.stack)} (${sign}${formatChips(p.profit)})`;
     });
 
     return {
