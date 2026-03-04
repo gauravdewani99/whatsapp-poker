@@ -182,7 +182,13 @@
   </div>
 
   <!-- QR code library (lightweight, ~33KB) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
+          onerror="console.error('Primary QR CDN failed, trying fallback...');
+                   var s=document.createElement('script');
+                   s.src='https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js';
+                   s.onload=function(){qrLibReady()};
+                   document.head.appendChild(s);"
+          onload="qrLibReady()"></script>
 
   <script>
     const adminKey = new URLSearchParams(window.location.search).get('key') || '';
@@ -195,6 +201,22 @@
     const actions = document.getElementById('actions');
     const btnRestart = document.getElementById('btn-restart');
     const btnRelink = document.getElementById('btn-relink');
+
+    // Buffer QR data in case SSE arrives before library loads
+    let pendingQrData = null;
+    let qrLibLoaded = typeof QRCode !== 'undefined';
+
+    function qrLibReady() {
+      qrLibLoaded = true;
+      // Render any buffered QR
+      if (pendingQrData) {
+        renderQr(pendingQrData);
+        pendingQrData = null;
+      }
+    }
+
+    // If library loaded synchronously (cached), mark ready
+    if (qrLibLoaded) qrLibReady();
 
     const STATUS_HINTS = {
       connected: 'Bot is live and responding to commands.',
@@ -228,15 +250,26 @@
       }
     }
 
+    function renderQr(qrData) {
+      if (typeof QRCode === 'undefined') {
+        console.warn('QRCode library not available — buffering QR data');
+        pendingQrData = qrData;
+        return;
+      }
+      QRCode.toCanvas(qrCanvas, qrData, {
+        width: 220,
+        margin: 1,
+        color: { dark: '#111b21', light: '#ffffff' },
+      }).then(function() {
+        console.log('QR code rendered successfully');
+      }).catch(function(err) {
+        console.error('QR canvas render failed:', err);
+      });
+    }
+
     function showQr(qrData) {
       qrSection.classList.add('visible');
-      if (typeof QRCode !== 'undefined') {
-        QRCode.toCanvas(qrCanvas, qrData, {
-          width: 220,
-          margin: 1,
-          color: { dark: '#111b21', light: '#ffffff' },
-        });
-      }
+      renderQr(qrData);
     }
 
     // SSE connection for real-time updates
