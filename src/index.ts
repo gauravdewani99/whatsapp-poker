@@ -46,7 +46,7 @@ async function main() {
   // 5. Create kick vote manager & nudge scheduler
   const kickVoteManager = new KickVoteManager(botManager);
   registry.setKickVoteManager(kickVoteManager);
-  const nudgeScheduler = new NudgeScheduler(botManager, activationManager);
+  const nudgeScheduler = new NudgeScheduler(botManager, activationManager, db);
 
   // Clear turn timers when bot disconnects
   botManager.on('status', (status: string) => {
