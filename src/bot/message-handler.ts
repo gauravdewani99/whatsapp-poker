@@ -2,6 +2,7 @@ import type { WASocket, WAMessage } from '@whiskeysockets/baileys';
 import { parseCommand } from './command-parser.js';
 import type { CommandRegistry } from './command-registry.js';
 import type { GroupActivationManager } from '../state/group-activation.js';
+import { welcomeMessage } from '../messages/templates.js';
 import { logger } from '../utils/logger.js';
 import { MESSAGE_DELAY_MS } from '../utils/constants.js';
 
@@ -76,6 +77,14 @@ async function handleMessage(
   if (!activationManager.isActive(groupId)) {
     activationManager.activate(groupId);
     logger.info({ groupId }, 'Group auto-activated on first command');
+
+    // Send welcome message as fallback (the Baileys group-participants.update event was missed)
+    try {
+      await socket.sendMessage(groupId, { text: welcomeMessage() });
+      logger.info({ groupId }, 'Welcome message sent (fallback on first command)');
+    } catch (err) {
+      logger.error({ err, groupId }, 'Failed to send fallback welcome message');
+    }
   }
 
   try {

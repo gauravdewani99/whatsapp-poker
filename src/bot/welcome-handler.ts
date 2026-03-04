@@ -25,7 +25,10 @@ export function registerWelcomeHandler(
       // Check if any of the added participants is the bot itself
       // Bot JID format: "number:0@s.whatsapp.net" or "number@s.whatsapp.net"
       const currentBotJid = socket.user?.id;
-      if (!currentBotJid) return;
+      if (!currentBotJid) {
+        logger.warn({ groupId, participants }, 'Bot JID not available — cannot check if bot was added');
+        return;
+      }
 
       // Normalize: strip the ":0" suffix that Baileys sometimes adds
       const botNumber = currentBotJid.split(':')[0].split('@')[0];
