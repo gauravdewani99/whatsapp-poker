@@ -1,14 +1,17 @@
 import { EventEmitter } from 'node:events';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import makeWASocket, { Browsers, DisconnectReason, fetchLatestBaileysVersion, type WASocket } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import qrTerminal from 'qrcode-terminal';
 import { initAuthState } from './baileys-auth.js';
+import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 
 export type BotStatus = 'stopped' | 'starting' | 'waiting_for_qr' | 'connected' | 'disconnected';
 
-const RECONNECT_DELAY_MS = 10_000;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const INITIAL_RECONNECT_DELAY_MS = 5_000;   // Start at 5 seconds
+const MAX_RECONNECT_DELAY_MS = 300_000;      // Cap at 5 minutes
 
 export class BotManager extends EventEmitter {
   private socket: WASocket | null = null;
@@ -34,12 +37,14 @@ export class BotManager extends EventEmitter {
   private scheduleReconnect(): void {
     if (this.reconnectTimer) return;
     this.reconnectAttempts++;
-    if (this.reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-      logger.error({ attempts: this.reconnectAttempts }, 'Max reconnect attempts reached, giving up');
-      this.setStatus('stopped');
-      return;
-    }
-    logger.info({ attempt: this.reconnectAttempts }, `Scheduling reconnect in ${RECONNECT_DELAY_MS / 1000}s...`);
+
+    // Exponential backoff: 5s, 10s, 20s, 40s, 80s, 160s, 300s, 300s...
+    const delayMs = Math.min(
+      INITIAL_RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1),
+      MAX_RECONNECT_DELAY_MS,
+    );
+
+    logger.info({ attempt: this.reconnectAttempts, delaySec: (delayMs / 1000).toFixed(0) }, 'Scheduling reconnect...');
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectTimer = null;
       try {
@@ -47,7 +52,7 @@ export class BotManager extends EventEmitter {
       } catch (err) {
         logger.error({ err }, 'Reconnect failed');
       }
-    }, RECONNECT_DELAY_MS);
+    }, delayMs);
   }
 
   /** Send a message to a group chat. Used by turn timer callbacks. */
@@ -154,5 +159,28 @@ export class BotManager extends EventEmitter {
     this.socket = null;
     this._lastQr = null;
     this.setStatus('stopped');
+  }
+
+  /** Restart the bot with existing credentials. */
+  async restart(): Promise<void> {
+    logger.info('Restarting bot...');
+    await this.stop();
+    this.reconnectAttempts = 0;
+    await this.start();
+  }
+
+  /** Nuclear option: delete auth credentials and restart. Forces a new QR scan. */
+  async relink(): Promise<void> {
+    logger.info('Relinking bot — clearing auth state...');
+    await this.stop();
+    this.reconnectAttempts = 0;
+    const authDir = join(config.dataDir, 'baileys-auth');
+    try {
+      rmSync(authDir, { recursive: true, force: true });
+      logger.info({ authDir }, 'Auth state deleted');
+    } catch (err) {
+      logger.error({ err }, 'Failed to delete auth state');
+    }
+    await this.start();
   }
 }

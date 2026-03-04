@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The House — Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111b21;
+      color: #e9edef;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+    }
+    .brand h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand .sub {
+      font-size: 0.82rem;
+      color: #8696a0;
+      margin-top: 4px;
+    }
+
+    /* Status card */
+    .status-card {
+      width: 100%;
+      background: rgba(31, 44, 51, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.connected { background: #00a884; box-shadow: 0 0 8px rgba(0, 168, 132, 0.5); }
+    .status-dot.waiting_for_qr { background: #f0b429; box-shadow: 0 0 8px rgba(240, 180, 41, 0.5); }
+    .status-dot.disconnected { background: #f04438; box-shadow: 0 0 8px rgba(240, 68, 56, 0.4); }
+    .status-dot.stopped { background: #8696a0; }
+    .status-dot.starting { background: #f0b429; animation: pulse 1.5s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .status-hint {
+      font-size: 0.78rem;
+      color: #8696a0;
+    }
+
+    /* QR section */
+    .qr-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+    .qr-section.visible { display: flex; }
+
+    .qr-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      display: inline-block;
+    }
+    .qr-box canvas {
+      display: block;
+      border-radius: 4px;
+    }
+
+    .qr-label {
+      font-size: 0.82rem;
+      color: #8696a0;
+    }
+
+    /* Buttons */
+    .actions {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .actions.visible { display: flex; }
+
+    .btn {
+      width: 100%;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-restart {
+      background: #00a884;
+      color: #111b21;
+    }
+    .btn-restart:hover:not(:disabled) { background: #06cf9c; }
+
+    .btn-relink {
+      background: transparent;
+      color: #f04438;
+      border: 1px solid rgba(240, 68, 56, 0.4);
+    }
+    .btn-relink:hover:not(:disabled) { background: rgba(240, 68, 56, 0.1); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header class="brand">
+      <h1>The House</h1>
+      <p class="sub">Admin Panel</p>
+    </header>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-dot stopped" id="status-dot"></span>
+        <span class="status-label" id="status-label">Loading...</span>
+      </div>
+      <p class="status-hint" id="status-hint"></p>
+    </div>
+
+    <div class="qr-section" id="qr-section">
+      <div class="qr-box">
+        <canvas id="qr-canvas"></canvas>
+      </div>
+      <p class="qr-label">Scan with WhatsApp to link The House</p>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="btn btn-restart" id="btn-restart" onclick="doRestart()">Restart</button>
+      <button class="btn btn-relink" id="btn-relink" onclick="doRelink()">Relink (new QR)</button>
+    </div>
+  </div>
+
+  <!-- QR code library (lightweight, ~33KB) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+
+  <script>
+    const adminKey = new URLSearchParams(window.location.search).get('key') || '';
+
+    const statusDot = document.getElementById('status-dot');
+    const statusLabel = document.getElementById('status-label');
+    const statusHint = document.getElementById('status-hint');
+    const qrSection = document.getElementById('qr-section');
+    const qrCanvas = document.getElementById('qr-canvas');
+    const actions = document.getElementById('actions');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnRelink = document.getElementById('btn-relink');
+
+    const STATUS_HINTS = {
+      connected: 'Bot is live and responding to commands.',
+      waiting_for_qr: 'Scan the QR code below to link.',
+      disconnected: 'Attempting to reconnect...',
+      stopped: 'Bot has stopped. Use the buttons below.',
+      starting: 'Bot is starting up...',
+    };
+
+    function updateStatus(status) {
+      // Update dot
+      statusDot.className = 'status-dot ' + status;
+
+      // Update label
+      const displayName = status === 'waiting_for_qr' ? 'Waiting for QR' : status;
+      statusLabel.textContent = displayName;
+
+      // Update hint
+      statusHint.textContent = STATUS_HINTS[status] || '';
+
+      // Show/hide action buttons (visible when not connected)
+      if (status === 'connected' || status === 'starting') {
+        actions.classList.remove('visible');
+      } else {
+        actions.classList.add('visible');
+      }
+
+      // Hide QR section unless waiting
+      if (status !== 'waiting_for_qr') {
+        qrSection.classList.remove('visible');
+      }
+    }
+
+    function showQr(qrData) {
+      qrSection.classList.add('visible');
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(qrCanvas, qrData, {
+          width: 220,
+          margin: 1,
+          color: { dark: '#111b21', light: '#ffffff' },
+        });
+      }
+    }
+
+    // SSE connection for real-time updates
+    function connectSSE() {
+      const evtSource = new EventSource('/api/events');
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'status') {
+            updateStatus(data.status);
+          }
+          if (data.type === 'qr') {
+            showQr(data.qr);
+          }
+        } catch (e) {
+          console.error('SSE parse error:', e);
+        }
+      };
+
+      evtSource.onerror = () => {
+        evtSource.close();
+        // Reconnect SSE after 5 seconds
+        setTimeout(connectSSE, 5000);
+      };
+    }
+
+    // Load initial status
+    fetch('/api/status')
+      .then(r => r.json())
+      .then(data => updateStatus(data.status))
+      .catch(() => updateStatus('stopped'));
+
+    connectSSE();
+
+    // Action handlers
+    async function doRestart() {
+      btnRestart.disabled = true;
+      btnRestart.textContent = 'Restarting...';
+      try {
+        await fetch('/api/restart?key=' + encodeURIComponent(adminKey), { method: 'POST' });
+      } catch (e) {
+        console.error('Restart failed:', e);
+      }
+      setTimeout(() => {
+        btnRestart.disabled = false;
+        btnRestart.textContent = 'Restart';
+      }, 5000);
+    }
+
+    async function doRelink() {
+      if (!confirm('This will clear all credentials and require a fresh QR scan. Continue?')) return;
+      btnRelink.disabled = true;
+      btnRelink.textContent = 'Relinking...';
+      try {
+        await fetch('/api/relink?key=' + encodeURIComponent(adminKey), { method: 'POST' });
+      } catch (e) {
+        console.error('Relink failed:', e);
+      }
+      setTimeout(() => {
+        btnRelink.disabled = false;
+        btnRelink.textContent = 'Relink (new QR)';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

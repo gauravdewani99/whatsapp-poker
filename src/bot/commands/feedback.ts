@@ -15,7 +15,7 @@ export function registerFeedbackCommand(registry: CommandRegistry): void {
     );
 
     return {
-      groupMessage: `\u2660\uFE0F The House has received your tribute, *${command.senderName}*. Feedback noted. The House rewards loyalty.`,
+      groupMessage: `\u2660\uFE0F The House hears you, *${command.senderName}*. Feedback noted. The House rewards loyalty.`,
     };
   });
 }

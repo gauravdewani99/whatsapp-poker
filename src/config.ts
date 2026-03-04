@@ -9,4 +9,5 @@ export const config = {
   defaultStartingChips: parseInt(process.env.DEFAULT_STARTING_CHIPS || '10000', 10),
   port: parseInt(process.env.PORT || '3000', 10),
   botPhoneNumber: process.env.BOT_PHONE_NUMBER || '',
+  adminKey: process.env.ADMIN_KEY || 'thehouse2026',
 } as const;

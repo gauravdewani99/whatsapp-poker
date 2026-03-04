@@ -58,6 +58,35 @@ export function createWebServer(botManager: BotManager) {
     });
   });
 
+  // ─── Admin routes (protected by ADMIN_KEY) ───────────────────────────
+
+  const checkAdminKey = (req: express.Request, res: express.Response): boolean => {
+    if (req.query.key !== config.adminKey) {
+      res.status(403).json({ error: 'Forbidden' });
+      return false;
+    }
+    return true;
+  };
+
+  app.get('/admin', (req, res) => {
+    if (!checkAdminKey(req, res)) return;
+    res.sendFile(join(__dirname, 'public', 'admin.html'));
+  });
+
+  app.post('/api/restart', async (req, res) => {
+    if (!checkAdminKey(req, res)) return;
+    logger.info('Admin triggered restart');
+    res.json({ success: true });
+    await botManager.restart();
+  });
+
+  app.post('/api/relink', async (req, res) => {
+    if (!checkAdminKey(req, res)) return;
+    logger.info('Admin triggered relink');
+    res.json({ success: true });
+    await botManager.relink();
+  });
+
   return app;
 }
 
