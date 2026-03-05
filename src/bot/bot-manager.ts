@@ -17,6 +17,7 @@ export class BotManager extends EventEmitter {
   private socket: WASocket | null = null;
   private _status: BotStatus = 'stopped';
   private _lastQr: string | null = null;
+  private _lastPairingCode: string | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
 
@@ -89,12 +90,32 @@ export class BotManager extends EventEmitter {
     const baileysLogger = logger.child({ module: 'baileys' });
     baileysLogger.level = 'silent';
 
+    // Use pairing code (phone number) if BOT_PHONE_NUMBER is set, otherwise QR
+    const usePairingCode = !!config.botPhoneNumber;
+
     this.socket = makeWASocket({
       auth: state,
       version,
       logger: baileysLogger as any,
       browser: Browsers.macOS('Chrome'),
+      printQRInTerminal: !usePairingCode,
     });
+
+    // Request pairing code if using phone number auth
+    if (usePairingCode && !state.creds.registered) {
+      // Small delay to let the socket initialize
+      setTimeout(async () => {
+        try {
+          const phoneNumber = config.botPhoneNumber.replace(/[^0-9]/g, '');
+          const code = await this.socket!.requestPairingCode(phoneNumber);
+          logger.info({ code, phoneNumber }, '📱 PAIRING CODE — Enter this in WhatsApp > Linked Devices > Link with phone number');
+          this._lastPairingCode = code;
+          this.emit('pairing_code', code);
+        } catch (err) {
+          logger.error({ err }, 'Failed to request pairing code');
+        }
+      }, 3000);
+    }
 
     // Save credentials whenever they update (key rotation, etc.)
     this.socket.ev.on('creds.update', saveCreds);
