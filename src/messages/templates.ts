@@ -350,6 +350,7 @@ export function helpMessage(): string {
     '!call (!c) - Call the current bet',
     '!raise <amount> (!r) - Raise',
     '!all-in (!a) - Go all-in',
+    '!1 / !2 / !3 - Run it multiple (when all-in)',
     '',
     '*Info:*',
     '!status (!s) - Show table state',
@@ -371,9 +372,6 @@ export function helpMessage(): string {
     '!fish - Poetic roast for the aggressor',
     '!shame - Tease the loser',
     '!gg - Compliment the winner',
-    '',
-    '*Run It Multiple:*',
-    '!1 / !2 / !3 - Run the board 1, 2, or 3 times (when all-in)',
   ].join('\n');
 }
 
