@@ -302,17 +302,31 @@ export function statusMessage(table: TableState): string {
 
 export function welcomeMessage(): string {
   return [
-    `\u2660\uFE0F *The House has entered the chat* \u2660\uFE0F`,
+    `\u2660\uFE0F *The House has joined the table* \u2660\uFE0F`,
     '',
-    `I'm your poker dealer. I handle the cards, chips & turns so you can focus on bluffing your friends.`,
+    `I'm here to host your poker games \u2014 cards, chips & turns handled.`,
     '',
-    `*Quick start:*`,
-    `1. \`!poker start 50/100\` — open a table`,
-    `2. \`!poker join 10000\` — sit down`,
-    `3. \`!poker deal\` — let's go`,
-    '',
-    `Type *!help* for the full command list.`,
+    `When you're ready, type *!help* to see all commands.`,
     `Good luck \u2014 you'll need it. \uD83C\uDCCF`,
+  ].join('\n');
+}
+
+export function dmWelcomeMessage(): string {
+  return [
+    `Greetings from The House \u2660\uFE0F`,
+    '',
+    `To play a game, add me to a group chat with your friends.`,
+    `Once I'm in the group, you can start a game and manage the table.`,
+    '',
+    `To see all available commands, type *!help* here or in the group.`,
+  ].join('\n');
+}
+
+export function dmCommandRejectionMessage(): string {
+  return [
+    `That command only works in a group chat \u2660\uFE0F`,
+    '',
+    `Add The House to a group with your friends to start playing.`,
   ].join('\n');
 }
 

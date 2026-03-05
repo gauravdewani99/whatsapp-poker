@@ -2,7 +2,8 @@ import type { WASocket, WAMessage } from '@whiskeysockets/baileys';
 import { parseCommand } from './command-parser.js';
 import type { CommandRegistry } from './command-registry.js';
 import type { GroupActivationManager } from '../state/group-activation.js';
-import { welcomeMessage } from '../messages/templates.js';
+import type { CommandName } from '../models/command.js';
+import { welcomeMessage, dmWelcomeMessage, dmCommandRejectionMessage } from '../messages/templates.js';
 import { logger } from '../utils/logger.js';
 import { MESSAGE_DELAY_MS } from '../utils/constants.js';
 
@@ -23,6 +24,12 @@ function getMessageText(msg: WAMessage): string | null {
 
 /** Commands that work even before the group is activated */
 const UNGATED_COMMANDS = new Set(['help']);
+
+/** Standalone commands that can be used in personal DMs (no table/group state needed) */
+const DM_ALLOWED_COMMANDS = new Set<CommandName>([
+  'help', 'rules', 'stats', 'feedback',
+  'ragebait', 'needle', 'tight', 'fish', 'shame', 'gg',
+]);
 
 export function registerMessageHandler(
   socket: WASocket,
@@ -53,14 +60,60 @@ async function handleMessage(
   if (msg.key.fromMe) return;
 
   const body = getMessageText(msg);
-  if (!body || !body.startsWith('!')) return;
-
   const remoteJid = msg.key.remoteJid;
   if (!remoteJid) return;
 
-  // Only process group messages
   const isGroup = remoteJid.endsWith('@g.us');
-  if (!isGroup) return;
+
+  // ─── DM handling ───────────────────────────────────────────────────────
+  if (!isGroup) {
+    if (!body) return;
+
+    if (body.startsWith('!')) {
+      // DM command — check if it's allowed
+      const senderWaId = remoteJid;
+      const senderName = msg.pushName || 'Unknown';
+      const command = parseCommand(body, senderWaId, senderName, remoteJid);
+
+      if (command && DM_ALLOWED_COMMANDS.has(command.name)) {
+        // Execute the standalone command and send response back as DM
+        try {
+          logger.info({ command: command.name, sender: senderName }, 'DM command received');
+          const result = await registry.execute(command);
+
+          if (result.groupMessage) {
+            const msgs = Array.isArray(result.groupMessage) ? result.groupMessage : [result.groupMessage];
+            for (const m of msgs) {
+              await socket.sendMessage(remoteJid, { text: m });
+            }
+          }
+          if (result.error) {
+            await socket.sendMessage(remoteJid, { text: result.error });
+          }
+        } catch (err) {
+          logger.error({ err, remoteJid }, 'Failed to handle DM command');
+        }
+      } else {
+        // Game command in DM → graceful rejection
+        try {
+          await socket.sendMessage(remoteJid, { text: dmCommandRejectionMessage() });
+        } catch (err) {
+          logger.error({ err, remoteJid }, 'Failed to send DM command rejection');
+        }
+      }
+    } else {
+      // Non-command DM → welcome message
+      try {
+        await socket.sendMessage(remoteJid, { text: dmWelcomeMessage() });
+      } catch (err) {
+        logger.error({ err, remoteJid }, 'Failed to send DM welcome');
+      }
+    }
+    return;
+  }
+
+  // ─── Group handling (unchanged) ────────────────────────────────────────
+  if (!body || !body.startsWith('!')) return;
 
   const groupId = remoteJid;
   const senderWaId = msg.key.participant || remoteJid;
