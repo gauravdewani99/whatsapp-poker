@@ -3,6 +3,7 @@ import type { TableManager } from '../state/table-manager.js';
 import type { TurnTimer } from '../state/turn-timer.js';
 import type { IdleTimer } from '../state/idle-timer.js';
 import type { KickVoteManager } from '../state/kick-vote-manager.js';
+import type { RimManager } from '../state/rim-manager.js';
 import type { BotManager } from './bot-manager.js';
 import type { DB } from '../db/connection.js';
 
@@ -14,6 +15,7 @@ export class CommandRegistry {
   private _idleTimer: IdleTimer | null = null;
   private _botManager: BotManager | null = null;
   private _kickVoteManager: KickVoteManager | null = null;
+  private _rimManager: RimManager | null = null;
 
   constructor(
     private tableManager: TableManager,
@@ -70,5 +72,13 @@ export class CommandRegistry {
 
   getKickVoteManager(): KickVoteManager | null {
     return this._kickVoteManager;
+  }
+
+  setRimManager(rimManager: RimManager): void {
+    this._rimManager = rimManager;
+  }
+
+  getRimManager(): RimManager | null {
+    return this._rimManager;
   }
 }

@@ -9,6 +9,7 @@ import { GroupActivationManager } from './state/group-activation.js';
 import { TurnTimer } from './state/turn-timer.js';
 import { NudgeScheduler } from './bot/nudge-scheduler.js';
 import { KickVoteManager } from './state/kick-vote-manager.js';
+import { RimManager } from './state/rim-manager.js';
 import { IdleTimer } from './state/idle-timer.js';
 import { initDatabase } from './db/connection.js';
 import { startWebServer } from './web/server.js';
@@ -46,9 +47,11 @@ async function main() {
   const botManager = new BotManager();
   registry.setBotManager(botManager);
 
-  // 5. Create kick vote manager & nudge scheduler
+  // 5. Create kick vote manager, RIM manager & nudge scheduler
   const kickVoteManager = new KickVoteManager(botManager);
   registry.setKickVoteManager(kickVoteManager);
+  const rimManager = new RimManager(botManager);
+  registry.setRimManager(rimManager);
   const nudgeScheduler = new NudgeScheduler(botManager, activationManager, db, tableManager);
 
   // Clear turn timers when bot disconnects
@@ -57,6 +60,7 @@ async function main() {
       turnTimer.clearAll();
       idleTimer.clearAll();
       kickVoteManager.clearAll();
+      rimManager.clearAll();
       nudgeScheduler.stop();
       logger.info({ status }, 'Cleared all timers and nudge scheduler due to bot status change');
     }
@@ -87,6 +91,7 @@ async function main() {
     turnTimer.clearAll();
     idleTimer.clearAll();
     kickVoteManager.clearAll();
+    rimManager.clearAll();
     nudgeScheduler.stop();
     await botManager.stop();
     process.exit(0);

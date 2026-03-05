@@ -217,9 +217,17 @@ describe('Game Round Integration', () => {
 
     // BB calls
     current = table.seats[table.currentPlayerSeatIndex]!;
-    round.processAction(current.waId, 'call');
+    const callResult = round.processAction(current.waId, 'call');
 
-    // Should run out to showdown (both actions complete, one is all-in)
+    // RIM feature: game pauses for run-it-multiple vote instead of auto-dealing
+    expect(table.rimState).toBeTruthy();
+    expect(table.rimState!.savedDeck.length).toBeGreaterThan(0);
+
+    // Simulate choosing to run it once
+    const messages = round.executeRimRunout(1);
+    expect(messages.length).toBeGreaterThan(0);
+
+    // Should now be at showdown with 5 community cards
     expect(table.phase).toBe('showdown');
     expect(table.communityCards.length).toBe(5);
   });

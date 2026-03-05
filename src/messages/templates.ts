@@ -137,6 +137,70 @@ export function riverMessage(card: CardString, allCommunity: CardString[], potTo
   ].join('\n');
 }
 
+export function rimPromptMessage(table: TableState): string {
+  return [
+    `\uD83D\uDD25 *All-in! Run it once, twice, or thrice?*`,
+    '',
+    `Reply *!1*, *!2*, or *!3*`,
+    `_Lowest vote wins · 30s to decide · default !1_`,
+  ].join('\n');
+}
+
+export function rimRunMessage(
+  runNum: number,
+  totalRuns: number,
+  communityCards: CardString[],
+  evaluated: EvaluatedHand[],
+  runWinners: EvaluatedHand[],
+  table: TableState,
+): string {
+  const lines: string[] = [
+    `\u2500\u2500\u2500 *RUN ${runNum} of ${totalRuns}* \u2500\u2500\u2500`,
+    '',
+    `  ${renderCards(communityCards)}`,
+    '',
+  ];
+
+  // Show each player's hand
+  for (const seat of table.seats) {
+    if (!seat || !seat.isActive || !seat.holeCards) continue;
+    const evalHand = evaluated.find(h => h.playerId === seat.profileId);
+    const desc = evalHand ? evalHand.handDescription : 'Unknown';
+    lines.push(`\uD83D\uDC40 *${seat.displayName}*: ${renderCards(seat.holeCards)} - _${desc}_`);
+  }
+
+  lines.push('');
+  for (const w of runWinners) {
+    const seat = table.seats.find(s => s?.profileId === w.playerId);
+    if (seat) {
+      lines.push(`\uD83C\uDFC6 *${seat.displayName}* wins Run ${runNum}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+export function rimSummaryMessage(
+  totalRuns: number,
+  totalWinnings: Map<number, number>,
+  table: TableState,
+): string {
+  const lines: string[] = [
+    `\u2500\u2500\u2500 *RESULTS (${totalRuns} RUN${totalRuns > 1 ? 'S' : ''})* \u2500\u2500\u2500`,
+    '',
+  ];
+
+  for (const [playerId, amount] of totalWinnings) {
+    const seat = table.seats.find(s => s?.profileId === playerId);
+    if (seat) {
+      lines.push(`\uD83C\uDFC6 *${seat.displayName}*: ${formatChips(amount)}`);
+    }
+  }
+
+  lines.push(divider());
+  return lines.join('\n');
+}
+
 export function uncontestedWinMessage(winner: SeatPlayer, potTotal: number): string {
   return [
     `\uD83C\uDFC6 *${winner.displayName}* wins *${formatChips(potTotal)}* (uncontested)`,
@@ -293,6 +357,9 @@ export function helpMessage(): string {
     '!fish - Poetic roast for the aggressor',
     '!shame - Tease the loser',
     '!gg - Compliment the winner',
+    '',
+    '*Run It Multiple:*',
+    '!1 / !2 / !3 - Run the board 1, 2, or 3 times (when all-in)',
   ].join('\n');
 }
 

@@ -8,7 +8,8 @@ export type CommandName =
   | 'ragebait'
   | 'needle' | 'tight'
   | 'fish' | 'shame'
-  | 'show' | 'gg';
+  | 'show' | 'gg'
+  | 'rim';
 
 export interface ParsedCommand {
   name: CommandName;

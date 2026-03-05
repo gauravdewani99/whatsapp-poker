@@ -136,6 +136,10 @@ export class GameRound {
   }
 
   processAction(senderWaId: string, action: BettingAction, amount?: number): CommandResult {
+    if (this.table.rimState) {
+      return { error: 'All-in runout in progress. Reply !1, !2, or !3.' };
+    }
+
     if (this.table.phase === 'waiting' || this.table.phase === 'showdown') {
       return { error: 'No hand in progress. Use !poker deal to start.' };
     }
@@ -258,10 +262,22 @@ export class GameRound {
     this.table.deck = this.table.deck.slice(deckIndex);
 
     if (skipBetting) {
-      // All-in runout: send each street as a separate message for drama
-      const messages: string[] = [message];
+      const messages: string[] = [message]; // current street already dealt & shown
       const remainingPhases = phases.slice(phases.indexOf(nextPhase) + 1);
+      const remainingStreets = remainingPhases.filter(p => p !== 'showdown');
 
+      // RIM eligible: ≥2 active players AND remaining streets to deal
+      if (remainingStreets.length > 0 && getActivePlayers(this.table).length >= 2) {
+        this.table.rimState = {
+          savedDeck: [...this.table.deck],
+          savedCommunityCards: [...this.table.communityCards],
+          savedPhase: this.table.phase,
+        };
+        messages.push(templates.rimPromptMessage(this.table));
+        return messages; // Exit early — RIM vote will resume via executeRimRunout()
+      }
+
+      // Fallback: no remaining streets or only one player — deal remaining normally
       for (const rp of remainingPhases) {
         if (rp === 'showdown') {
           messages.push(this.resolveShowdown());
@@ -365,6 +381,182 @@ export class GameRound {
       winnerHands,
       potState,
     );
+  }
+
+  /**
+   * Execute a Run-It-Multiple runout after all-in vote resolves.
+   * Deals remaining community cards `runs` times, evaluates hands for each run,
+   * and distributes each pot proportionally across runs.
+   */
+  executeRimRunout(runs: number): string[] {
+    const rim = this.table.rimState;
+    if (!rim) return ['No RIM state found.'];
+
+    const phases: GamePhase[] = ['preflop', 'flop', 'turn', 'river', 'showdown'];
+    const savedPhaseIdx = phases.indexOf(rim.savedPhase);
+    const remainingPhases = phases.slice(savedPhaseIdx + 1).filter(p => p !== 'showdown');
+
+    // Calculate how many deck cards each run needs (burn+deal per remaining street)
+    let cardsPerRun = 0;
+    for (const rp of remainingPhases) {
+      cardsPerRun += 1; // burn card
+      cardsPerRun += rp === 'flop' ? 3 : 1; // deal cards
+    }
+
+    // Cap runs if not enough cards in saved deck
+    const maxRuns = cardsPerRun > 0 ? Math.floor(rim.savedDeck.length / cardsPerRun) : 1;
+    const actualRuns = Math.min(runs, maxRuns);
+
+    const messages: string[] = [];
+    const totalWinnings: Map<number, number> = new Map();
+    const potState = this.potManager.state;
+    const activePlayers = getActivePlayers(this.table);
+
+    for (let run = 0; run < actualRuns; run++) {
+      // Reset community cards to saved state for this run
+      this.table.communityCards = [...rim.savedCommunityCards];
+
+      // Deal remaining streets from the saved deck at offset run*cardsPerRun
+      let deckOffset = run * cardsPerRun;
+
+      for (const rp of remainingPhases) {
+        deckOffset++; // burn
+        switch (rp) {
+          case 'flop': {
+            const flop = rim.savedDeck.slice(deckOffset, deckOffset + 3);
+            deckOffset += 3;
+            this.table.communityCards.push(...flop);
+            break;
+          }
+          case 'turn':
+          case 'river': {
+            const card = rim.savedDeck.slice(deckOffset, deckOffset + 1);
+            deckOffset += 1;
+            this.table.communityCards.push(...card);
+            break;
+          }
+        }
+      }
+
+      // Evaluate all active players' hands for this run's board
+      const evaluated: EvaluatedHand[] = [];
+      for (const player of activePlayers) {
+        if (player.holeCards) {
+          evaluated.push(evaluateHand(
+            player.profileId,
+            player.holeCards,
+            this.table.communityCards,
+          ));
+        }
+      }
+
+      // Distribute each pot's run share
+      for (const pot of potState.pots) {
+        const eligible = evaluated.filter(h => pot.eligiblePlayerIds.includes(h.playerId));
+        if (eligible.length === 0) continue;
+
+        // Calculate this run's share of the pot
+        const runPot = run === 0
+          ? Math.floor(pot.amount / actualRuns) + (pot.amount % actualRuns) // extra chips to run 1
+          : Math.floor(pot.amount / actualRuns);
+
+        const potWinners = determineWinners(eligible);
+        const share = Math.floor(runPot / potWinners.length);
+        const remainder = runPot - share * potWinners.length;
+
+        potWinners.forEach((winner, idx) => {
+          const bonus = idx === 0 ? remainder : 0;
+          const total = (totalWinnings.get(winner.playerId) || 0) + share + bonus;
+          totalWinnings.set(winner.playerId, total);
+        });
+
+        // Generate run message with winners for this run
+        if (actualRuns > 1) {
+          const runWinners = determineWinners(eligible);
+          messages.push(templates.rimRunMessage(
+            run + 1,
+            actualRuns,
+            this.table.communityCards,
+            evaluated,
+            runWinners,
+            this.table,
+          ));
+        }
+      }
+
+      // For single run, show a normal showdown instead of rimRunMessage
+      if (actualRuns === 1) {
+        // Evaluate once more for showing
+        const evaluated: EvaluatedHand[] = [];
+        for (const player of activePlayers) {
+          if (player.holeCards) {
+            evaluated.push(evaluateHand(
+              player.profileId,
+              player.holeCards,
+              this.table.communityCards,
+            ));
+          }
+        }
+        const winnerHands: Map<number, string> = new Map();
+        for (const [playerId] of totalWinnings) {
+          const evalHand = evaluated.find(h => h.playerId === playerId);
+          if (evalHand) winnerHands.set(playerId, evalHand.handDescription);
+        }
+
+        // Deal remaining streets as separate messages (like normal all-in runout)
+        this.table.communityCards = [...rim.savedCommunityCards];
+        let offset = 0;
+        for (const rp of remainingPhases) {
+          offset++; // burn
+          switch (rp) {
+            case 'flop': {
+              const flop = rim.savedDeck.slice(offset, offset + 3);
+              offset += 3;
+              this.table.communityCards.push(...flop);
+              messages.push(templates.flopMessage(flop, this.potManager.totalAmount, this.table));
+              break;
+            }
+            case 'turn': {
+              const turn = rim.savedDeck.slice(offset, offset + 1);
+              offset += 1;
+              this.table.communityCards.push(...turn);
+              messages.push(templates.turnMessage(turn[0], this.table.communityCards, this.potManager.totalAmount, this.table));
+              break;
+            }
+            case 'river': {
+              const river = rim.savedDeck.slice(offset, offset + 1);
+              offset += 1;
+              this.table.communityCards.push(...river);
+              messages.push(templates.riverMessage(river[0], this.table.communityCards, this.potManager.totalAmount, this.table));
+              break;
+            }
+          }
+        }
+
+        // Show showdown
+        messages.push(templates.showdownMessage(
+          this.table, evaluated, totalWinnings, winnerHands, potState,
+        ));
+      }
+    }
+
+    // Award total winnings to players
+    for (const [playerId, amount] of totalWinnings) {
+      const seat = this.table.seats.find(s => s?.profileId === playerId);
+      if (seat) seat.chipStack += amount;
+    }
+
+    // For multi-run, add a summary
+    if (actualRuns > 1) {
+      messages.push(templates.rimSummaryMessage(actualRuns, totalWinnings, this.table));
+    }
+
+    // Clean up RIM state
+    this.table.rimState = null;
+    this.table.phase = 'showdown';
+    this.table.potState = potState;
+
+    return messages;
   }
 
   getHandResult(): HandResult | null {

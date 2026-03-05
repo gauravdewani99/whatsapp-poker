@@ -10,6 +10,13 @@ export interface LeftPlayer {
   cashOut: number;
 }
 
+/** Saved state for Run-It-Multiple when all players are all-in. */
+export interface RimState {
+  savedDeck: CardString[];
+  savedCommunityCards: CardString[];
+  savedPhase: GamePhase;
+}
+
 export interface TableState {
   gameId: number;
   config: GameConfig;
@@ -31,4 +38,7 @@ export interface TableState {
 
   /** Players who left mid-session via !poker leave */
   leftPlayers: LeftPlayer[];
+
+  /** Set when RIM vote is in progress (all-in runout pending). */
+  rimState?: RimState | null;
 }

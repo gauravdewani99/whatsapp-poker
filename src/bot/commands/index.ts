@@ -19,6 +19,7 @@ import { registerTotalbuyinCommand } from './totalbuyin.js';
 import { registerGroupstatsCommand } from './groupstats.js';
 import { registerSitoutCommands } from './sitout.js';
 import { registerFeedbackCommand } from './feedback.js';
+import { registerRimCommand } from './rim.js';
 
 export function registerAllCommands(registry: CommandRegistry): void {
   registerStartCommand(registry);
@@ -41,4 +42,5 @@ export function registerAllCommands(registry: CommandRegistry): void {
   registerGroupstatsCommand(registry);
   registerSitoutCommands(registry);
   registerFeedbackCommand(registry);
+  registerRimCommand(registry);
 }

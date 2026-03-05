@@ -35,6 +35,7 @@ const COMMAND_ALIASES: Record<string, CommandName> = {
   '!shame': 'shame',
   '!show': 'show',
   '!gg': 'gg',
+  '!1': 'rim', '!2': 'rim', '!3': 'rim',
 };
 
 // Sort by length descending so longer prefixes match first
