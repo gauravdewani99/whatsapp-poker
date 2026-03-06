@@ -70,6 +70,15 @@ export const groupPlayerStats = sqliteTable('group_player_stats', {
   lastPlayedAt: text('last_played_at'),
 });
 
+export const feedback = sqliteTable('feedback', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  waId: text('wa_id').notNull(),
+  displayName: text('display_name').notNull(),
+  groupId: text('group_id'),
+  message: text('message').notNull(),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const actions = sqliteTable('actions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   handId: integer('hand_id').notNull().references(() => hands.id),

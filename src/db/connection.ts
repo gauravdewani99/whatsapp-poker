@@ -66,6 +66,15 @@ function ensureTables(sqlite: Database.Database): void {
       activated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      wa_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      group_id TEXT,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS actions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       hand_id INTEGER NOT NULL REFERENCES hands(id),
