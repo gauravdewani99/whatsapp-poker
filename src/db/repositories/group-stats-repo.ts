@@ -29,20 +29,19 @@ export class GroupStatsRepository {
   constructor(private db: DB) {}
 
   /** Get all stats for a group, sorted by net P&L descending. */
-  getGroupStats(groupId: string): GroupPlayerStat[] {
-    return this.db
+  async getGroupStats(groupId: string): Promise<GroupPlayerStat[]> {
+    return await this.db
       .select()
       .from(groupPlayerStats)
-      .where(eq(groupPlayerStats.groupId, groupId))
-      .all() as GroupPlayerStat[];
+      .where(eq(groupPlayerStats.groupId, groupId)) as GroupPlayerStat[];
   }
 
   /** Record session-end stats for all players at a table. */
-  recordSessionEnd(groupId: string, players: SessionEndPlayer[]): void {
+  async recordSessionEnd(groupId: string, players: SessionEndPlayer[]): Promise<void> {
     const now = new Date().toISOString();
 
     for (const p of players) {
-      const existing = this.db
+      const rows = await this.db
         .select()
         .from(groupPlayerStats)
         .where(
@@ -50,11 +49,12 @@ export class GroupStatsRepository {
             eq(groupPlayerStats.groupId, groupId),
             eq(groupPlayerStats.waId, p.waId),
           ),
-        )
-        .get();
+        );
+
+      const existing = rows[0];
 
       if (existing) {
-        this.db
+        await this.db
           .update(groupPlayerStats)
           .set({
             displayName: p.displayName,
@@ -70,10 +70,9 @@ export class GroupStatsRepository {
               eq(groupPlayerStats.groupId, groupId),
               eq(groupPlayerStats.waId, p.waId),
             ),
-          )
-          .run();
+          );
       } else {
-        this.db
+        await this.db
           .insert(groupPlayerStats)
           .values({
             groupId,
@@ -86,8 +85,7 @@ export class GroupStatsRepository {
             totalCashOut: p.cashOut,
             biggestPot: 0,
             lastPlayedAt: now,
-          })
-          .run();
+          });
       }
     }
   }

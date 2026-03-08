@@ -4,7 +4,7 @@ import { actions } from '../schema.js';
 export class ActionRepository {
   constructor(private db: DB) {}
 
-  recordAction(
+  async recordAction(
     handId: number,
     playerId: number,
     phase: 'preflop' | 'flop' | 'turn' | 'river',
@@ -12,8 +12,8 @@ export class ActionRepository {
     amount: number,
     potAfter: number,
     sequence: number,
-  ): void {
-    this.db.insert(actions).values({
+  ): Promise<void> {
+    await this.db.insert(actions).values({
       handId,
       playerId,
       phase,
@@ -21,6 +21,6 @@ export class ActionRepository {
       amount,
       potAfter,
       sequence,
-    }).run();
+    });
   }
 }

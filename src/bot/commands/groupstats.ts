@@ -4,10 +4,10 @@ import { GroupStatsRepository } from '../../db/repositories/group-stats-repo.js'
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerGroupstatsCommand(registry: CommandRegistry): void {
-  registry.register('groupstats', (command: ParsedCommand): CommandResult => {
+  registry.register('groupstats', async (command: ParsedCommand): Promise<CommandResult> => {
     const db = registry.getDB();
     const groupStatsRepo = new GroupStatsRepository(db);
-    const stats = groupStatsRepo.getGroupStats(command.groupId);
+    const stats = await groupStatsRepo.getGroupStats(command.groupId);
 
     if (stats.length === 0) {
       return { error: 'No stats recorded yet. Play some sessions first!' };

@@ -34,6 +34,7 @@ async function main() {
   // 2. Create single shared game state
   const tableManager = new TableManager();
   const activationManager = new GroupActivationManager(db);
+  await activationManager.init();
   const registry = new CommandRegistry(tableManager, db);
   registerAllCommands(registry);
 

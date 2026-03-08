@@ -5,13 +5,13 @@ import { clearTurnTimer } from './turn-timer-helper.js';
 import { logger } from '../../utils/logger.js';
 
 export function registerRimCommand(registry: CommandRegistry): void {
-  registry.register('rim', (command) => {
+  registry.register('rim', async (command) => {
     const rimManager = registry.getRimManager();
     if (!rimManager) {
       return { error: 'RIM voting is not available.' };
     }
 
-    // Extract the run count from the raw command text (e.g. "!1" → 1, "!2" → 2, "!3" → 3)
+    // Extract the run count from the raw command text (e.g. "!1" -> 1, "!2" -> 2, "!3" -> 3)
     const match = command.rawText.trim().match(/^!([123])$/i);
     if (!match) {
       return { error: 'Reply *!1*, *!2*, or *!3*.' };
@@ -57,7 +57,7 @@ export function registerRimCommand(registry: CommandRegistry): void {
 
           const potTotal = winners.reduce((sum, w) => sum + w.amount, 0);
 
-          const handId = gameRepo.recordHand(
+          const handId = await gameRepo.recordHand(
             table.gameId,
             handResult.handNumber,
             table.dealerSeatIndex,
@@ -68,7 +68,7 @@ export function registerRimCommand(registry: CommandRegistry): void {
 
           for (const pr of handResult.playerResults) {
             const seat = table.seats.find(s => s?.profileId === pr.playerId);
-            gameRepo.recordHandPlayer(
+            await gameRepo.recordHandPlayer(
               handId,
               pr.playerId,
               seat?.seatIndex ?? 0,
@@ -77,7 +77,7 @@ export function registerRimCommand(registry: CommandRegistry): void {
               pr.chipsAfter,
               pr.finalAction,
             );
-            playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
+            await playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
 
             if (seat) {
               seat.sessionHandsPlayed++;

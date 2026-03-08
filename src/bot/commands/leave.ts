@@ -5,7 +5,7 @@ import type { SeatPlayer } from '../../models/player.js';
 import * as templates from '../../messages/templates.js';
 
 export function registerLeaveCommand(registry: CommandRegistry): void {
-  registry.register('leave', (command: ParsedCommand): CommandResult => {
+  registry.register('leave', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -28,9 +28,9 @@ export function registerLeaveCommand(registry: CommandRegistry): void {
 
     // Return chips to balance
     const playerRepo = new PlayerRepository(db);
-    const profile = playerRepo.findByWaId(command.senderWaId);
+    const profile = await playerRepo.findByWaId(command.senderWaId);
     if (profile) {
-      playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+      await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
     }
 
     // Track left player for session stats & stacks display

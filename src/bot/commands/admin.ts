@@ -10,7 +10,7 @@ import { logger } from '../../utils/logger.js';
 
 export function registerAdminCommands(registry: CommandRegistry): void {
   // !poker stop - end the session
-  registry.register('stop', (command: ParsedCommand): CommandResult => {
+  registry.register('stop', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -29,9 +29,9 @@ export function registerAdminCommands(registry: CommandRegistry): void {
     for (const seat of table.seats) {
       if (!seat) continue;
       seatedPlayers.push(seat);
-      const profile = playerRepo.findByWaId(seat.waId);
+      const profile = await playerRepo.findByWaId(seat.waId);
       if (profile) {
-        playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+        await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
       }
     }
 
@@ -56,14 +56,14 @@ export function registerAdminCommands(registry: CommandRegistry): void {
           handsWon: 0,
         })),
       ];
-      groupStatsRepo.recordSessionEnd(command.groupId, allSessionPlayers);
+      await groupStatsRepo.recordSessionEnd(command.groupId, allSessionPlayers);
     } catch (err) {
       logger.error({ err, groupId: command.groupId }, 'Failed to record group stats');
     }
 
     // End game in DB
     const gameRepo = new GameRepository(db);
-    gameRepo.endGame(table.gameId);
+    await gameRepo.endGame(table.gameId);
 
     // Clear turn timer, idle timer, and remove table
     clearTurnTimer(registry, command.groupId);
@@ -79,7 +79,7 @@ export function registerAdminCommands(registry: CommandRegistry): void {
   });
 
   // !poker kick — consensus-based voting
-  registry.register('kick', (command: ParsedCommand): CommandResult => {
+  registry.register('kick', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -108,9 +108,9 @@ export function registerAdminCommands(registry: CommandRegistry): void {
           if (seatIdx !== -1) {
             const seat = table.seats[seatIdx] as SeatPlayer;
             const playerRepo = new PlayerRepository(db);
-            const profile = playerRepo.findByWaId(seat.waId);
+            const profile = await playerRepo.findByWaId(seat.waId);
             if (profile) {
-              playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+              await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
             }
             table.seats[seatIdx] = null;
             return {
@@ -156,9 +156,9 @@ export function registerAdminCommands(registry: CommandRegistry): void {
         return { error: 'Only the table creator can kick players.' };
       }
       const playerRepo = new PlayerRepository(db);
-      const profile = playerRepo.findByWaId(targetSeat.waId);
+      const profile = await playerRepo.findByWaId(targetSeat.waId);
       if (profile) {
-        playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
+        await playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
       }
       table.seats[seatIdx] = null;
       return {
@@ -190,9 +190,9 @@ export function registerAdminCommands(registry: CommandRegistry): void {
     // Check if it was auto-completed (e.g. only 1 voter = initiator)
     if (voteResult.completed && voteResult.approved) {
       const playerRepo = new PlayerRepository(db);
-      const profile = playerRepo.findByWaId(targetSeat.waId);
+      const profile = await playerRepo.findByWaId(targetSeat.waId);
       if (profile) {
-        playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
+        await playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
       }
       table.seats[seatIdx] = null;
       return {

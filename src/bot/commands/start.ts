@@ -7,7 +7,7 @@ import * as templates from '../../messages/templates.js';
 import { config } from '../../config.js';
 
 export function registerStartCommand(registry: CommandRegistry): void {
-  registry.register('start', (command: ParsedCommand): CommandResult => {
+  registry.register('start', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
 
@@ -37,7 +37,7 @@ export function registerStartCommand(registry: CommandRegistry): void {
 
     // Create player profile if needed
     const playerRepo = new PlayerRepository(db);
-    const player = playerRepo.findOrCreate(
+    const player = await playerRepo.findOrCreate(
       command.senderWaId,
       command.senderName,
       config.defaultStartingChips,
@@ -45,7 +45,7 @@ export function registerStartCommand(registry: CommandRegistry): void {
 
     // Create game in DB
     const gameRepo = new GameRepository(db);
-    const gameId = gameRepo.createGame(
+    const gameId = await gameRepo.createGame(
       command.groupId,
       smallBlind,
       bigBlind,

@@ -6,7 +6,7 @@ import * as templates from '../../messages/templates.js';
 import { config } from '../../config.js';
 
 export function registerJoinCommand(registry: CommandRegistry): void {
-  registry.register('join', (command: ParsedCommand): CommandResult => {
+  registry.register('join', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -42,7 +42,7 @@ export function registerJoinCommand(registry: CommandRegistry): void {
 
     // Create or get player profile
     const playerRepo = new PlayerRepository(db);
-    const profile = playerRepo.findOrCreate(
+    const profile = await playerRepo.findOrCreate(
       command.senderWaId,
       command.senderName,
       config.defaultStartingChips,
@@ -54,7 +54,7 @@ export function registerJoinCommand(registry: CommandRegistry): void {
     }
 
     // Deduct buy-in from balance
-    playerRepo.updateBalance(profile.id, profile.chipBalance - buyIn);
+    await playerRepo.updateBalance(profile.id, profile.chipBalance - buyIn);
 
     // Seat the player
     const seatPlayer = createSeatPlayer(profile, emptySeatIdx, buyIn);

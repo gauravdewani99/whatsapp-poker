@@ -9,32 +9,32 @@ import { activatedGroups } from '../db/schema.js';
 export class GroupActivationManager {
   private activeGroups: Set<string> = new Set();
 
-  constructor(private db: DB) {
-    // Load existing activations from DB
-    const rows = this.db.select().from(activatedGroups).all();
+  constructor(private db: DB) {}
+
+  /** Load existing activations from DB. Must be called after construction. */
+  async init(): Promise<void> {
+    const rows = await this.db.select().from(activatedGroups);
     for (const row of rows) {
       this.activeGroups.add(row.groupId);
     }
   }
 
   /** Activate a group. Returns true if newly activated, false if already active. */
-  activate(groupId: string): boolean {
+  async activate(groupId: string): Promise<boolean> {
     if (this.activeGroups.has(groupId)) {
       return false;
     }
     this.activeGroups.add(groupId);
-    this.db.insert(activatedGroups)
+    await this.db.insert(activatedGroups)
       .values({ groupId })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
     return true;
   }
 
-  deactivate(groupId: string): void {
+  async deactivate(groupId: string): Promise<void> {
     this.activeGroups.delete(groupId);
-    this.db.delete(activatedGroups)
-      .where(eq(activatedGroups.groupId, groupId))
-      .run();
+    await this.db.delete(activatedGroups)
+      .where(eq(activatedGroups.groupId, groupId));
   }
 
   isActive(groupId: string): boolean {

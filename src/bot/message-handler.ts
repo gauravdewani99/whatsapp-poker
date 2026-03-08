@@ -128,7 +128,7 @@ async function handleMessage(
 
   // Auto-activate group on first command — if the bot is receiving messages, it's in the group
   if (!activationManager.isActive(groupId)) {
-    activationManager.activate(groupId);
+    await activationManager.activate(groupId);
     logger.info({ groupId }, 'Group auto-activated on first command');
 
     // Send welcome message as fallback (the Baileys group-participants.update event was missed)
@@ -168,9 +168,9 @@ async function handleMessage(
 
           const seatedPlayers = table.seats.filter((s): s is import('../models/player.js').SeatPlayer => s !== null);
           for (const seat of seatedPlayers) {
-            const profile = playerRepo.findByWaId(seat.waId);
+            const profile = await playerRepo.findByWaId(seat.waId);
             if (profile) {
-              playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+              await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
             }
           }
 
@@ -194,11 +194,11 @@ async function handleMessage(
               handsWon: 0,
             })),
           ];
-          groupStatsRepo.recordSessionEnd(groupId, allSessionPlayers);
+          await groupStatsRepo.recordSessionEnd(groupId, allSessionPlayers);
 
           // End game in DB
           const gameRepo = new GameRepository(db);
-          gameRepo.endGame(table.gameId);
+          await gameRepo.endGame(table.gameId);
 
           // Clear turn timer and remove table
           const turnTimer = registry.getTurnTimer();

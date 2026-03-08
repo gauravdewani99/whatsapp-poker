@@ -5,7 +5,7 @@ import type { SeatPlayer } from '../../models/player.js';
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerCashoutCommand(registry: CommandRegistry): void {
-  registry.register('cashout', (command: ParsedCommand): CommandResult => {
+  registry.register('cashout', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -27,9 +27,9 @@ export function registerCashoutCommand(registry: CommandRegistry): void {
 
     const cashoutAmount = seat.chipStack;
     const playerRepo = new PlayerRepository(db);
-    const profile = playerRepo.findByWaId(command.senderWaId);
+    const profile = await playerRepo.findByWaId(command.senderWaId);
     if (profile) {
-      playerRepo.updateBalance(profile.id, profile.chipBalance + cashoutAmount);
+      await playerRepo.updateBalance(profile.id, profile.chipBalance + cashoutAmount);
     }
 
     table.seats[seatIdx] = null;

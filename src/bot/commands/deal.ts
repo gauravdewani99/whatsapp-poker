@@ -7,7 +7,7 @@ import { startTurnTimer } from './turn-timer-helper.js';
 import { logger } from '../../utils/logger.js';
 
 export function registerDealCommand(registry: CommandRegistry): void {
-  registry.register('deal', (command: ParsedCommand): CommandResult => {
+  registry.register('deal', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -41,7 +41,7 @@ export function registerDealCommand(registry: CommandRegistry): void {
     if (table.handNumber === 0) {
       try {
         const gameRepo = new GameRepository(db);
-        gameRepo.startGame(table.gameId);
+        await gameRepo.startGame(table.gameId);
       } catch (err) {
         logger.error({ err, groupId: command.groupId }, 'Failed to mark game as started in DB');
       }

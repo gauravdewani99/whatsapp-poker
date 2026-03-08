@@ -43,7 +43,7 @@ export function registerWelcomeHandler(
       logger.info({ groupId }, 'Bot was added to a group — auto-activating');
 
       // Auto-activate the group
-      activationManager.activate(groupId);
+      await activationManager.activate(groupId);
 
       // Send welcome message
       await socket.sendMessage(groupId, { text: welcomeMessage() });

@@ -8,7 +8,7 @@ import { startTurnTimer, clearTurnTimer } from './turn-timer-helper.js';
 import { logger } from '../../utils/logger.js';
 
 export function registerBetActions(registry: CommandRegistry): void {
-  const handleBetAction = (command: ParsedCommand, action: BettingAction): CommandResult => {
+  const handleBetAction = async (command: ParsedCommand, action: BettingAction): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const round = tm.getGameRound(command.groupId);
@@ -58,7 +58,7 @@ export function registerBetActions(registry: CommandRegistry): void {
 
             const potTotal = winners.reduce((sum, w) => sum + w.amount, 0);
 
-            const handId = gameRepo.recordHand(
+            const handId = await gameRepo.recordHand(
               table.gameId,
               handResult.handNumber,
               table.dealerSeatIndex,
@@ -70,7 +70,7 @@ export function registerBetActions(registry: CommandRegistry): void {
             // Record each player's result
             for (const pr of handResult.playerResults) {
               const seat = table.seats.find(s => s?.profileId === pr.playerId);
-              gameRepo.recordHandPlayer(
+              await gameRepo.recordHandPlayer(
                 handId,
                 pr.playerId,
                 seat?.seatIndex ?? 0,
@@ -79,7 +79,7 @@ export function registerBetActions(registry: CommandRegistry): void {
                 pr.chipsAfter,
                 pr.finalAction,
               );
-              playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
+              await playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
 
               // Track session-level stats for group stats
               if (seat) {
@@ -116,7 +116,7 @@ export function registerBetActions(registry: CommandRegistry): void {
             const messages = round.executeRimRunout(runs);
 
             // Record hand in DB
-            recordHandInDb(db, round, tbl);
+            await recordHandInDb(db, round, tbl);
 
             // Send each message to the group
             if (botManager) {
@@ -145,7 +145,7 @@ export function registerBetActions(registry: CommandRegistry): void {
 }
 
 /** Shared helper to record hand results in the DB. Used by both bet-actions and rim timeout. */
-function recordHandInDb(db: import('../../db/connection.js').DB, round: import('../../engine/game-round.js').GameRound, table: import('../../models/table.js').TableState): void {
+async function recordHandInDb(db: import('../../db/connection.js').DB, round: import('../../engine/game-round.js').GameRound, table: import('../../models/table.js').TableState): Promise<void> {
   try {
     const handResult = round.getHandResult();
     if (!handResult) return;
@@ -167,7 +167,7 @@ function recordHandInDb(db: import('../../db/connection.js').DB, round: import('
 
     const potTotal = winners.reduce((sum, w) => sum + w.amount, 0);
 
-    const handId = gameRepo.recordHand(
+    const handId = await gameRepo.recordHand(
       table.gameId,
       handResult.handNumber,
       table.dealerSeatIndex,
@@ -178,7 +178,7 @@ function recordHandInDb(db: import('../../db/connection.js').DB, round: import('
 
     for (const pr of handResult.playerResults) {
       const seat = table.seats.find(s => s?.profileId === pr.playerId);
-      gameRepo.recordHandPlayer(
+      await gameRepo.recordHandPlayer(
         handId,
         pr.playerId,
         seat?.seatIndex ?? 0,
@@ -187,7 +187,7 @@ function recordHandInDb(db: import('../../db/connection.js').DB, round: import('
         pr.chipsAfter,
         pr.finalAction,
       );
-      playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
+      await playerRepo.recordHandPlayed(pr.playerId, pr.chipsAfter > pr.chipsBefore);
 
       if (seat) {
         seat.sessionHandsPlayed++;

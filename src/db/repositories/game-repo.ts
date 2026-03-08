@@ -5,8 +5,8 @@ import { games, hands, handPlayers } from '../schema.js';
 export class GameRepository {
   constructor(private db: DB) {}
 
-  createGame(groupId: string, smallBlind: number, bigBlind: number, minBuyIn: number, maxBuyIn: number, createdBy: number): number {
-    const result = this.db.insert(games).values({
+  async createGame(groupId: string, smallBlind: number, bigBlind: number, minBuyIn: number, maxBuyIn: number, createdBy: number): Promise<number> {
+    const result = await this.db.insert(games).values({
       groupId,
       smallBlind,
       bigBlind,
@@ -14,33 +14,31 @@ export class GameRepository {
       maxBuyIn,
       createdBy,
       status: 'waiting',
-    }).returning().all();
+    }).returning();
     return result[0].id;
   }
 
-  startGame(gameId: number): void {
-    this.db.update(games)
+  async startGame(gameId: number): Promise<void> {
+    await this.db.update(games)
       .set({ status: 'active', startedAt: new Date().toISOString() })
-      .where(eq(games.id, gameId))
-      .run();
+      .where(eq(games.id, gameId));
   }
 
-  endGame(gameId: number): void {
-    this.db.update(games)
+  async endGame(gameId: number): Promise<void> {
+    await this.db.update(games)
       .set({ status: 'finished', endedAt: new Date().toISOString() })
-      .where(eq(games.id, gameId))
-      .run();
+      .where(eq(games.id, gameId));
   }
 
-  recordHand(
+  async recordHand(
     gameId: number,
     handNumber: number,
     dealerSeat: number,
     communityCards: string[],
     potTotal: number,
     winners: Array<{ playerId: number; amount: number; hand: string }>,
-  ): number {
-    const result = this.db.insert(hands).values({
+  ): Promise<number> {
+    const result = await this.db.insert(hands).values({
       gameId,
       handNumber,
       dealerSeat,
@@ -48,11 +46,11 @@ export class GameRepository {
       potTotal,
       winnersJson: JSON.stringify(winners),
       endedAt: new Date().toISOString(),
-    }).returning().all();
+    }).returning();
     return result[0].id;
   }
 
-  recordHandPlayer(
+  async recordHandPlayer(
     handId: number,
     playerId: number,
     seatPosition: number,
@@ -60,8 +58,8 @@ export class GameRepository {
     chipsBefore: number,
     chipsAfter: number,
     finalAction: 'fold' | 'showdown' | 'win_uncontested',
-  ): void {
-    this.db.insert(handPlayers).values({
+  ): Promise<void> {
+    await this.db.insert(handPlayers).values({
       handId,
       playerId,
       seatPosition,
@@ -69,21 +67,20 @@ export class GameRepository {
       chipsBefore,
       chipsAfter,
       finalAction,
-    }).run();
+    });
   }
 
-  getRecentHands(gameId: number, limit: number = 5): Array<{
+  async getRecentHands(gameId: number, limit: number = 5): Promise<Array<{
     handNumber: number;
     winner: string;
     amount: number;
     hand: string;
-  }> {
-    const rows = this.db.select()
+  }>> {
+    const rows = await this.db.select()
       .from(hands)
       .where(eq(hands.gameId, gameId))
       .orderBy(desc(hands.handNumber))
-      .limit(limit)
-      .all();
+      .limit(limit);
 
     return rows.map(row => {
       const winners = JSON.parse(row.winnersJson || '[]') as Array<{ playerId: number; displayName?: string; amount: number; hand: string }>;

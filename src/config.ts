@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
-  databasePath: process.env.DATABASE_PATH || './data/poker.db',
+  databaseUrl: process.env.DATABASE_URL || '',
   dataDir: process.env.DATA_DIR || './data',
   turnTimeoutSeconds: parseInt(process.env.TURN_TIMEOUT_SECONDS || '60', 10),
   logLevel: process.env.LOG_LEVEL || 'info',

@@ -4,10 +4,10 @@ import { PlayerRepository } from '../../db/repositories/player-repo.js';
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerStatsCommand(registry: CommandRegistry): void {
-  registry.register('stats', (command: ParsedCommand): CommandResult => {
+  registry.register('stats', async (command: ParsedCommand): Promise<CommandResult> => {
     const db = registry.getDB();
     const playerRepo = new PlayerRepository(db);
-    const profile = playerRepo.findByWaId(command.senderWaId);
+    const profile = await playerRepo.findByWaId(command.senderWaId);
 
     if (!profile) {
       return { error: 'No stats found. Play some hands first!' };

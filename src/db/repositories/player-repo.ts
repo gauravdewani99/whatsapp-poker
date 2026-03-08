@@ -6,8 +6,8 @@ import type { PlayerProfile } from '../../models/player.js';
 export class PlayerRepository {
   constructor(private db: DB) {}
 
-  findByWaId(waId: string): PlayerProfile | undefined {
-    const rows = this.db.select().from(players).where(eq(players.waId, waId)).all();
+  async findByWaId(waId: string): Promise<PlayerProfile | undefined> {
+    const rows = await this.db.select().from(players).where(eq(players.waId, waId));
     if (rows.length === 0) return undefined;
     const row = rows[0];
     return {
@@ -22,15 +22,15 @@ export class PlayerRepository {
     };
   }
 
-  findOrCreate(waId: string, displayName: string, startingChips: number = 0): PlayerProfile {
-    const existing = this.findByWaId(waId);
+  async findOrCreate(waId: string, displayName: string, startingChips: number = 0): Promise<PlayerProfile> {
+    const existing = await this.findByWaId(waId);
     if (existing) return existing;
 
-    const result = this.db.insert(players).values({
+    const result = await this.db.insert(players).values({
       waId,
       displayName,
       chipBalance: startingChips,
-    }).returning().all();
+    }).returning();
 
     const row = result[0];
     return {
@@ -45,36 +45,35 @@ export class PlayerRepository {
     };
   }
 
-  updateBalance(playerId: number, newBalance: number): void {
-    this.db.update(players)
+  async updateBalance(playerId: number, newBalance: number): Promise<void> {
+    await this.db.update(players)
       .set({ chipBalance: newBalance, updatedAt: new Date().toISOString() })
-      .where(eq(players.id, playerId))
-      .run();
+      .where(eq(players.id, playerId));
   }
 
-  addBuyIn(playerId: number, amount: number): void {
-    const player = this.db.select().from(players).where(eq(players.id, playerId)).all()[0];
+  async addBuyIn(playerId: number, amount: number): Promise<void> {
+    const rows = await this.db.select().from(players).where(eq(players.id, playerId));
+    const player = rows[0];
     if (!player) return;
-    this.db.update(players)
+    await this.db.update(players)
       .set({
         chipBalance: player.chipBalance + amount,
         totalBuyIn: player.totalBuyIn + amount,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(players.id, playerId))
-      .run();
+      .where(eq(players.id, playerId));
   }
 
-  recordHandPlayed(playerId: number, won: boolean): void {
-    const player = this.db.select().from(players).where(eq(players.id, playerId)).all()[0];
+  async recordHandPlayed(playerId: number, won: boolean): Promise<void> {
+    const rows = await this.db.select().from(players).where(eq(players.id, playerId));
+    const player = rows[0];
     if (!player) return;
-    this.db.update(players)
+    await this.db.update(players)
       .set({
         handsPlayed: player.handsPlayed + 1,
         handsWon: won ? player.handsWon + 1 : player.handsWon,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(players.id, playerId))
-      .run();
+      .where(eq(players.id, playerId));
   }
 }

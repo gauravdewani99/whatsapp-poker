@@ -5,7 +5,7 @@ import { PlayerRepository } from '../../db/repositories/player-repo.js';
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerRebuyCommand(registry: CommandRegistry): void {
-  registry.register('rebuy', (command: ParsedCommand): CommandResult => {
+  registry.register('rebuy', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
     const db = registry.getDB();
     const table = tm.getTable(command.groupId);
@@ -24,7 +24,7 @@ export function registerRebuyCommand(registry: CommandRegistry): void {
       return { error: 'You can only rebuy between hands or when busted.' };
     }
 
-    // Dynamic max: 2× the current max stack at the table, or the table's maxBuyIn — whichever is higher
+    // Dynamic max: 2x the current max stack at the table, or the table's maxBuyIn — whichever is higher
     const maxStack = Math.max(
       ...table.seats
         .filter((s): s is SeatPlayer => s !== null)
@@ -44,7 +44,7 @@ export function registerRebuyCommand(registry: CommandRegistry): void {
     }
 
     const playerRepo = new PlayerRepository(db);
-    const profile = playerRepo.findByWaId(command.senderWaId);
+    const profile = await playerRepo.findByWaId(command.senderWaId);
     if (!profile) {
       return { error: 'Player profile not found.' };
     }
@@ -56,7 +56,7 @@ export function registerRebuyCommand(registry: CommandRegistry): void {
     }
 
     // Deduct from balance and add to stack + track total buy-in
-    playerRepo.updateBalance(profile.id, profile.chipBalance - amount);
+    await playerRepo.updateBalance(profile.id, profile.chipBalance - amount);
     seat.chipStack += amount;
     seat.buyInAmount += amount;
 

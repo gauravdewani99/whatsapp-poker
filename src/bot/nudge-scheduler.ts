@@ -113,7 +113,7 @@ export class NudgeScheduler {
           continue;
         }
 
-        const message = this.generateMessage(groupId);
+        const message = await this.generateMessage(groupId);
         await this.botManager.sendGroupMessage(groupId, message);
         // Small delay between groups to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -123,8 +123,8 @@ export class NudgeScheduler {
     }
   }
 
-  private generateMessage(groupId: string): string {
-    const stats = this.groupStatsRepo.getGroupStats(groupId);
+  private async generateMessage(groupId: string): Promise<string> {
+    const stats = await this.groupStatsRepo.getGroupStats(groupId);
 
     // Need at least 2 players for personalized messages
     if (stats.length < 2) {
