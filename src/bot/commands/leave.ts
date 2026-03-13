@@ -39,6 +39,8 @@ export function registerLeaveCommand(registry: CommandRegistry): void {
       waId: seat.waId,
       buyInAmount: seat.buyInAmount,
       cashOut: seat.chipStack,
+      handsPlayed: seat.sessionHandsPlayed,
+      handsWon: seat.sessionHandsWon,
     });
 
     // Remove from seat

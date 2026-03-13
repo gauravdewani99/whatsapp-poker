@@ -450,7 +450,8 @@ export class GameRound {
         }
       }
 
-      // Distribute each pot's run share
+      // Distribute each pot's run share and collect per-run winners
+      const runWinnerSet = new Set<number>();
       for (const pot of potState.pots) {
         const eligible = evaluated.filter(h => pot.eligiblePlayerIds.includes(h.playerId));
         if (eligible.length === 0) continue;
@@ -468,20 +469,21 @@ export class GameRound {
           const bonus = idx === 0 ? remainder : 0;
           const total = (totalWinnings.get(winner.playerId) || 0) + share + bonus;
           totalWinnings.set(winner.playerId, total);
+          runWinnerSet.add(winner.playerId);
         });
+      }
 
-        // Generate run message with winners for this run
-        if (actualRuns > 1) {
-          const runWinners = determineWinners(eligible);
-          messages.push(templates.rimRunMessage(
-            run + 1,
-            actualRuns,
-            this.table.communityCards,
-            evaluated,
-            runWinners,
-            this.table,
-          ));
-        }
+      // Generate ONE run message per run (outside pot loop)
+      if (actualRuns > 1) {
+        const runWinners = evaluated.filter(h => runWinnerSet.has(h.playerId));
+        messages.push(templates.rimRunMessage(
+          run + 1,
+          actualRuns,
+          this.table.communityCards,
+          evaluated,
+          runWinners,
+          this.table,
+        ));
       }
 
       // For single run, show a normal showdown instead of rimRunMessage

@@ -8,6 +8,8 @@ export interface LeftPlayer {
   waId: string;
   buyInAmount: number;
   cashOut: number;
+  handsPlayed: number;
+  handsWon: number;
 }
 
 /** Saved state for Run-It-Multiple when all players are all-in. */

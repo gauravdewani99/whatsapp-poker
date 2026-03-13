@@ -4,9 +4,85 @@ import { GameRepository } from '../../db/repositories/game-repo.js';
 import { PlayerRepository } from '../../db/repositories/player-repo.js';
 import { GroupStatsRepository } from '../../db/repositories/group-stats-repo.js';
 import type { SeatPlayer } from '../../models/player.js';
+import type { TableState } from '../../models/table.js';
+import type { DB } from '../../db/connection.js';
 import { formatChips } from '../../messages/formatter.js';
 import { clearTurnTimer } from './turn-timer-helper.js';
+import { getActivePlayers, onlyOnePlayerActive, advanceToNextPlayer } from '../../engine/betting-round.js';
 import { logger } from '../../utils/logger.js';
+
+/** Shared kick execution: fold, return chips, track in leftPlayers, null seat, handle mid-hand resolution. */
+async function executeKick(
+  table: TableState,
+  seatIdx: number,
+  seat: SeatPlayer,
+  db: DB,
+): Promise<string | null> {
+  const handInProgress = table.phase !== 'waiting' && table.phase !== 'showdown';
+
+  // If hand is active, auto-fold the kicked player
+  if (handInProgress && seat.isActive) {
+    seat.isActive = false;
+  }
+
+  // Return chips to balance
+  const playerRepo = new PlayerRepository(db);
+  const profile = await playerRepo.findByWaId(seat.waId);
+  if (profile) {
+    await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+  }
+
+  // Track in leftPlayers for session stats
+  table.leftPlayers.push({
+    displayName: seat.displayName,
+    waId: seat.waId,
+    buyInAmount: seat.buyInAmount,
+    cashOut: seat.chipStack,
+    handsPlayed: seat.sessionHandsPlayed,
+    handsWon: seat.sessionHandsWon,
+  });
+
+  // Was this the current action player?
+  const wasCurrentPlayer = table.currentPlayerSeatIndex === seatIdx;
+
+  // Remove from seat
+  table.seats[seatIdx] = null;
+
+  // Handle mid-hand consequences
+  if (handInProgress) {
+    if (onlyOnePlayerActive(table)) {
+      // Only one player left — award pot and end hand
+      const winner = getActivePlayers(table)[0];
+      if (winner) {
+        // Sum all current bets + any existing pot
+        let totalPot = 0;
+        for (const s of table.seats) {
+          if (s) totalPot += s.currentBet;
+        }
+        totalPot += table.potState.pots.reduce((sum, p) => sum + p.amount, 0);
+        // Add the kicked player's bet that was already collected
+        winner.chipStack += totalPot;
+
+        // Reset bets
+        for (const s of table.seats) {
+          if (s) s.currentBet = 0;
+        }
+
+        table.phase = 'showdown';
+        return `\n\n🏆 *${winner.displayName}* wins *${formatChips(totalPot)}* (uncontested)`;
+      }
+    } else if (wasCurrentPlayer) {
+      // Advance to the next player since the current one was kicked
+      advanceToNextPlayer(table);
+      const nextPlayer = table.seats[table.currentPlayerSeatIndex];
+      if (nextPlayer) {
+        return `\nAction on: *${nextPlayer.displayName}*`;
+      }
+    }
+  }
+
+  return null;
+}
 
 export function registerAdminCommands(registry: CommandRegistry): void {
   // !poker stop - end the session
@@ -52,8 +128,8 @@ export function registerAdminCommands(registry: CommandRegistry): void {
           displayName: lp.displayName,
           buyIn: lp.buyInAmount,
           cashOut: lp.cashOut,
-          handsPlayed: 0,
-          handsWon: 0,
+          handsPlayed: lp.handsPlayed,
+          handsWon: lp.handsWon,
         })),
       ];
       await groupStatsRepo.recordSessionEnd(command.groupId, allSessionPlayers);
@@ -107,15 +183,10 @@ export function registerAdminCommands(registry: CommandRegistry): void {
           const seatIdx = table.seats.findIndex(s => s?.waId === targetWaId);
           if (seatIdx !== -1) {
             const seat = table.seats[seatIdx] as SeatPlayer;
-            const playerRepo = new PlayerRepository(db);
-            const profile = await playerRepo.findByWaId(seat.waId);
-            if (profile) {
-              await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
-            }
-            table.seats[seatIdx] = null;
-            return {
-              groupMessage: `\u2705 Vote passed! *${seat.displayName}* has been removed from the table. Chips returned: ${formatChips(seat.chipStack)}.`,
-            };
+            const extra = await executeKick(table, seatIdx, seat, db);
+            let msg = `\u2705 Vote passed! *${seat.displayName}* has been removed from the table. Chips returned: ${formatChips(seat.chipStack)}.`;
+            if (extra) msg += extra;
+            return { groupMessage: msg };
           }
         }
         if (voteResult.completed && !voteResult.approved) {
@@ -155,15 +226,10 @@ export function registerAdminCommands(registry: CommandRegistry): void {
       if (table.creatorWaId !== command.senderWaId) {
         return { error: 'Only the table creator can kick players.' };
       }
-      const playerRepo = new PlayerRepository(db);
-      const profile = await playerRepo.findByWaId(targetSeat.waId);
-      if (profile) {
-        await playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
-      }
-      table.seats[seatIdx] = null;
-      return {
-        groupMessage: `\u26D4 *${targetSeat.displayName}* has been removed by ${command.senderName}. Chips returned: ${formatChips(targetSeat.chipStack)}.`,
-      };
+      const extra = await executeKick(table, seatIdx, targetSeat, db);
+      let msg = `\u26D4 *${targetSeat.displayName}* has been removed by ${command.senderName}. Chips returned: ${formatChips(targetSeat.chipStack)}.`;
+      if (extra) msg += extra;
+      return { groupMessage: msg };
     }
 
     // Get all active players except the target for voting
@@ -189,15 +255,10 @@ export function registerAdminCommands(registry: CommandRegistry): void {
 
     // Check if it was auto-completed (e.g. only 1 voter = initiator)
     if (voteResult.completed && voteResult.approved) {
-      const playerRepo = new PlayerRepository(db);
-      const profile = await playerRepo.findByWaId(targetSeat.waId);
-      if (profile) {
-        await playerRepo.updateBalance(profile.id, profile.chipBalance + targetSeat.chipStack);
-      }
-      table.seats[seatIdx] = null;
-      return {
-        groupMessage: `\u2705 *${targetSeat.displayName}* has been removed from the table. Chips returned: ${formatChips(targetSeat.chipStack)}.`,
-      };
+      const extra = await executeKick(table, seatIdx, targetSeat, db);
+      let msg = `\u2705 *${targetSeat.displayName}* has been removed from the table. Chips returned: ${formatChips(targetSeat.chipStack)}.`;
+      if (extra) msg += extra;
+      return { groupMessage: msg };
     }
 
     return {
