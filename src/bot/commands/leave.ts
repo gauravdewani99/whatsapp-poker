@@ -26,11 +26,12 @@ export function registerLeaveCommand(registry: CommandRegistry): void {
       seat.isActive = false;
     }
 
-    // Return chips to balance
+    // Return chips to balance and record lifetime cash-out
     const playerRepo = new PlayerRepository(db);
     const profile = await playerRepo.findByWaId(command.senderWaId);
     if (profile) {
       await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+      await playerRepo.addCashOut(profile.id, seat.chipStack);
     }
 
     // Track left player for session stats & stacks display

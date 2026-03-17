@@ -1,13 +1,11 @@
 import type { ParsedCommand, CommandResult } from '../../models/command.js';
 import type { CommandRegistry } from '../command-registry.js';
 import type { SeatPlayer } from '../../models/player.js';
-import { PlayerRepository } from '../../db/repositories/player-repo.js';
 import { formatChips } from '../../messages/formatter.js';
 
 export function registerRebuyCommand(registry: CommandRegistry): void {
   registry.register('rebuy', async (command: ParsedCommand): Promise<CommandResult> => {
     const tm = registry.getTableManager();
-    const db = registry.getDB();
     const table = tm.getTable(command.groupId);
 
     if (!table) {
@@ -43,20 +41,7 @@ export function registerRebuyCommand(registry: CommandRegistry): void {
       };
     }
 
-    const playerRepo = new PlayerRepository(db);
-    const profile = await playerRepo.findByWaId(command.senderWaId);
-    if (!profile) {
-      return { error: 'Player profile not found.' };
-    }
-
-    if (profile.chipBalance < amount) {
-      return {
-        error: `Not enough chips. You have ${formatChips(profile.chipBalance)} but need ${formatChips(amount)}.`,
-      };
-    }
-
-    // Deduct from balance and add to stack + track total buy-in
-    await playerRepo.updateBalance(profile.id, profile.chipBalance - amount);
+    // Add to stack + track total buy-in (no wallet deduction — rebuys are always allowed)
     seat.chipStack += amount;
     seat.buyInAmount += amount;
 

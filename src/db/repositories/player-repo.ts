@@ -64,6 +64,18 @@ export class PlayerRepository {
       .where(eq(players.id, playerId));
   }
 
+  async addCashOut(playerId: number, amount: number): Promise<void> {
+    const rows = await this.db.select().from(players).where(eq(players.id, playerId));
+    const player = rows[0];
+    if (!player) return;
+    await this.db.update(players)
+      .set({
+        totalCashOut: player.totalCashOut + amount,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(players.id, playerId));
+  }
+
   async recordHandPlayed(playerId: number, won: boolean): Promise<void> {
     const rows = await this.db.select().from(players).where(eq(players.id, playerId));
     const player = rows[0];

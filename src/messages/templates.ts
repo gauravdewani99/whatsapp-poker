@@ -140,6 +140,7 @@ export function riverMessage(card: CardString, allCommunity: CardString[], potTo
 export function rimPromptMessage(table: TableState): string {
   return [
     `\uD83D\uDD25 *All-in! Run it once, twice, or thrice?*`,
+    `_Running it multiple times deals the remaining cards again and splits the pot across runs._`,
     '',
     `Reply *!1*, *!2*, or *!3*`,
     `_Lowest vote wins · 30s to decide · default !1_`,
@@ -337,7 +338,7 @@ export function helpMessage(): string {
     '*Game Management:*',
     '!poker start <sb>/<bb> - Start a table',
     '!poker join <amount> - Join with buy-in',
-    '!poker deal - Deal a new hand',
+    '!deal - Deal a new hand',
     '!poker leave - Leave the table',
     '!poker stop - End the session',
     '!poker kick <name> - Vote to kick a player',

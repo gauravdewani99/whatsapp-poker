@@ -171,6 +171,14 @@ async function handleMessage(
             const profile = await playerRepo.findByWaId(seat.waId);
             if (profile) {
               await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+              await playerRepo.addCashOut(profile.id, seat.chipStack);
+            }
+          }
+          // Record lifetime cash-out for players who left mid-session
+          for (const lp of table.leftPlayers) {
+            const profile = await playerRepo.findByWaId(lp.waId);
+            if (profile) {
+              await playerRepo.addCashOut(profile.id, lp.cashOut);
             }
           }
 
@@ -190,8 +198,8 @@ async function handleMessage(
               displayName: lp.displayName,
               buyIn: lp.buyInAmount,
               cashOut: lp.cashOut,
-              handsPlayed: 0,
-              handsWon: 0,
+              handsPlayed: lp.handsPlayed,
+              handsWon: lp.handsWon,
             })),
           ];
           await groupStatsRepo.recordSessionEnd(groupId, allSessionPlayers);

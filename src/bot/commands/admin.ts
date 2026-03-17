@@ -25,11 +25,12 @@ async function executeKick(
     seat.isActive = false;
   }
 
-  // Return chips to balance
+  // Return chips to balance and record lifetime cash-out
   const playerRepo = new PlayerRepository(db);
   const profile = await playerRepo.findByWaId(seat.waId);
   if (profile) {
     await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+    await playerRepo.addCashOut(profile.id, seat.chipStack);
   }
 
   // Track in leftPlayers for session stats
@@ -99,7 +100,7 @@ export function registerAdminCommands(registry: CommandRegistry): void {
       return { error: 'Only the table creator can stop the game.' };
     }
 
-    // Return all chips to players
+    // Return all chips to players and record lifetime cash-out
     const playerRepo = new PlayerRepository(db);
     const seatedPlayers: SeatPlayer[] = [];
     for (const seat of table.seats) {
@@ -108,6 +109,14 @@ export function registerAdminCommands(registry: CommandRegistry): void {
       const profile = await playerRepo.findByWaId(seat.waId);
       if (profile) {
         await playerRepo.updateBalance(profile.id, profile.chipBalance + seat.chipStack);
+        await playerRepo.addCashOut(profile.id, seat.chipStack);
+      }
+    }
+    // Record lifetime cash-out for players who left mid-session
+    for (const lp of table.leftPlayers) {
+      const profile = await playerRepo.findByWaId(lp.waId);
+      if (profile) {
+        await playerRepo.addCashOut(profile.id, lp.cashOut);
       }
     }
 
