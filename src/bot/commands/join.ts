@@ -48,15 +48,7 @@ export function registerJoinCommand(registry: CommandRegistry): void {
       config.defaultStartingChips,
     );
 
-    // Check balance
-    if (profile.chipBalance < buyIn) {
-      return { error: `Not enough chips. You have ${profile.chipBalance} but need ${buyIn}.` };
-    }
-
-    // Deduct buy-in from balance
-    await playerRepo.updateBalance(profile.id, profile.chipBalance - buyIn);
-
-    // Seat the player
+    // Seat the player (no wallet deduction — players can always join)
     const seatPlayer = createSeatPlayer(profile, emptySeatIdx, buyIn);
     table.seats[emptySeatIdx] = seatPlayer;
 
