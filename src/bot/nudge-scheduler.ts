@@ -35,8 +35,13 @@ const FALLBACK_MESSAGES = [
   "\u2660\uFE0F The House is open. The felt is warm. All that's missing is your bad decisions \u2014 `!poker start`",
 ];
 
-/** Calculate ms until a random time in the next 6pm–10pm IST window. */
-function msUntilNextWindow(): number {
+// ─── Nudge interval: send at most once every N days ─────────────────────
+const NUDGE_INTERVAL_DAYS = 2;
+
+/** Calculate ms until a random time in a future 6pm–10pm IST window.
+ *  @param extraDays  Additional full days to skip beyond the next window (default 0).
+ */
+function msUntilNextWindow(extraDays = 0): number {
   const now = Date.now();
   // Current time in IST (as a Date where UTC methods give IST values)
   const istNow = new Date(now + IST_OFFSET_MS);
@@ -52,6 +57,11 @@ function msUntilNextWindow(): number {
   // If target already passed today in IST, schedule for tomorrow
   if (target.getTime() <= istNow.getTime()) {
     target.setUTCDate(target.getUTCDate() + 1);
+  }
+
+  // Skip additional days as required by the interval
+  if (extraDays > 0) {
+    target.setUTCDate(target.getUTCDate() + extraDays);
   }
 
   // Convert IST target back to real UTC
@@ -86,16 +96,17 @@ export class NudgeScheduler {
     }
   }
 
-  private scheduleNext(): void {
-    const delayMs = msUntilNextWindow();
+  private scheduleNext(extraDays = 0): void {
+    const delayMs = msUntilNextWindow(extraDays);
     const delayHours = (delayMs / (60 * 60 * 1000)).toFixed(1);
     const targetTime = new Date(Date.now() + delayMs).toISOString();
 
-    logger.info({ delayHours, targetTime }, 'Next nudge scheduled');
+    logger.info({ delayHours, targetTime, intervalDays: NUDGE_INTERVAL_DAYS }, 'Next nudge scheduled');
 
     this.timerId = setTimeout(async () => {
       await this.sendNudges();
-      this.scheduleNext(); // schedule tomorrow's nudge
+      // Schedule the next nudge NUDGE_INTERVAL_DAYS from now (skip extra days)
+      this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
     }, delayMs);
   }
 

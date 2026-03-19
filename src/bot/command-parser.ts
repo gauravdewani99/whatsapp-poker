@@ -4,7 +4,7 @@ const COMMAND_ALIASES: Record<string, CommandName> = {
   '!poker start': 'start',
   '!poker join': 'join',
   '!poker leave': 'leave',
-  '!poker deal': 'deal', '!deal': 'deal',
+  '!poker deal': 'deal', '!deal': 'deal', '!patte': 'deal',
   '!poker stop': 'stop',
   '!poker kick': 'kick',
   '!poker buyins': 'buyins',
@@ -35,6 +35,7 @@ const COMMAND_ALIASES: Record<string, CommandName> = {
   '!shame': 'shame',
   '!show': 'show',
   '!gg': 'gg',
+  '!taunt': 'taunt',
   '!1': 'rim', '!2': 'rim', '!3': 'rim',
 };
 

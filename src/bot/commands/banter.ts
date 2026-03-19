@@ -56,6 +56,21 @@ const FISH_PHRASES = [
   '🐟 You bet like you have aces. You play like you have 7-2 off. The House never forgets.',
 ];
 
+const TAUNT_PHRASES = [
+  "😤 You're playing scared money. I can smell the fear from here.",
+  "🎯 Every chip you have is already mine — you just haven't figured it out yet.",
+  "🃏 Bold of you to stay at this table. Very bold. Very foolish.",
+  "💀 The last person who played like that went home on the bus.",
+  "🧊 Ice cold over here. Your hands? Not so much.",
+  "📉 That's a nice stack you got there. Would be a shame if something happened to it.",
+  "😏 I've seen better poker at a kids' birthday party.",
+  "🔥 Keep betting like that — it's the fastest way to fill my stack.",
+  "🪤 You walked right into that, didn't you? Classic.",
+  "👀 I've already figured out your range. You should be worried.",
+  "💸 Every session ends the same way for you. Want to know how this one ends?",
+  "🤡 That move had absolutely no business being made. Respect.",
+];
+
 const SHAME_PHRASES = [
   '🪦 The House sends its condolences.',
   '📉 That was painful to watch. Even The House looked away.',
@@ -109,5 +124,9 @@ export function registerBanterCommands(registry: CommandRegistry): void {
 
   registry.register('gg', (_command: ParsedCommand): CommandResult => {
     return { groupMessage: randomFrom(GG_COMPLIMENTS) };
+  });
+
+  registry.register('taunt', (_command: ParsedCommand): CommandResult => {
+    return { groupMessage: randomFrom(TAUNT_PHRASES) };
   });
 }

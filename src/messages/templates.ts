@@ -373,6 +373,7 @@ export function helpMessage(): string {
     '!fish - Poetic roast for the aggressor',
     '!shame - Tease the loser',
     '!gg - Compliment the winner',
+    '!taunt - Taunt your opponent',
   ].join('\n');
 }
 
