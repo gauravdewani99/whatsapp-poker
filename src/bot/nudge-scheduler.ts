@@ -36,7 +36,7 @@ const FALLBACK_MESSAGES = [
 ];
 
 // ─── Nudge interval: send at most once every N days ─────────────────────
-const NUDGE_INTERVAL_DAYS = 2;
+const NUDGE_INTERVAL_DAYS = 7;
 
 /** Calculate ms until a random time in a future 6pm–10pm IST window.
  *  @param extraDays  Additional full days to skip beyond the next window (default 0).
