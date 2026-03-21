@@ -85,7 +85,7 @@ export class NudgeScheduler {
 
   start(): void {
     if (this.timerId) return;
-    this.scheduleNext();
+    this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
   }
 
   stop(): void {
