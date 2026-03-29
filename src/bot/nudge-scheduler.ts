@@ -2,6 +2,8 @@ import type { BotManager } from './bot-manager.js';
 import type { GroupActivationManager } from '../state/group-activation.js';
 import type { TableManager } from '../state/table-manager.js';
 import type { DB } from '../db/connection.js';
+import { schedulerState } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 import { GroupStatsRepository } from '../db/repositories/group-stats-repo.js';
 import { formatChips } from '../messages/formatter.js';
 import { logger } from '../utils/logger.js';
@@ -16,27 +18,28 @@ type PlayerInfo = { name: string; pnl: number };
 
 const PERSONALIZED_TEMPLATES: Array<(p1: PlayerInfo, p2: PlayerInfo) => string> = [
   (p1, p2) =>
-    `\uD83C\uDCCF *${p1.name}*, how you feeling for a quick session? *${p2.name}* has been talking a big game. Time to shut them up \u2014 \`!poker start\``,
+    `🃏 *${p1.name}*, how you feeling for a quick session? *${p2.name}* has been talking a big game. Time to shut them up — \`!poker start\``,
   (p1, p2) =>
-    `\u2660\uFE0F *${p1.name}*, The House hasn't seen you at the table in a while. *${p2.name}* is getting too comfortable. Don't let that slide.`,
+    `♠️ *${p1.name}*, The House hasn't seen you at the table in a while. *${p2.name}* is getting too comfortable. Don't let that slide.`,
   (p1, p2) => {
     const sign = p1.pnl >= 0 ? '+' : '';
-    return `\uD83D\uDCB0 *${p1.name}*, you're sitting at ${sign}${formatChips(p1.pnl)} all-time. *${p2.name}* is right behind you. One session could change everything \u2014 \`!poker start\``;
+    return `💰 *${p1.name}*, you're sitting at ${sign}${formatChips(p1.pnl)} all-time. *${p2.name}* is right behind you. One session could change everything — \`!poker start\``;
   },
   (p1, p2) =>
-    `\uD83D\uDD25 *${p1.name}* vs *${p2.name}* \u2014 last session was close. The House thinks a rematch is overdue. \`!poker start\``,
+    `🔥 *${p1.name}* vs *${p2.name}* — last session was close. The House thinks a rematch is overdue. \`!poker start\``,
   (p1, p2) =>
-    `\uD83C\uDFAF *${p1.name}*, the chips miss you. *${p2.name}* has been cleaning up. Someone needs to bring the competition.`,
+    `🎯 *${p1.name}*, the chips miss you. *${p2.name}* has been cleaning up. Someone needs to bring the competition.`,
 ];
 
 // ─── Fallback messages (for groups with 0–1 players in history) ─────────
 const FALLBACK_MESSAGES = [
-  "\uD83C\uDCCF The cards aren't going to deal themselves. Who's in? `!poker start`",
-  "\u2660\uFE0F The House is open. The felt is warm. All that's missing is your bad decisions \u2014 `!poker start`",
+  "🃏 The cards aren't going to deal themselves. Who's in? `!poker start`",
+  "♠️ The House is open. The felt is warm. All that's missing is your bad decisions — `!poker start`",
 ];
 
 // ─── Nudge interval: send at most once every N days ─────────────────────
 const NUDGE_INTERVAL_DAYS = 7;
+const DB_KEY = 'nudge_next_target';
 
 /** Calculate ms until a random time in a future 6pm–10pm IST window.
  *  @param extraDays  Additional full days to skip beyond the next window (default 0).
@@ -83,9 +86,30 @@ export class NudgeScheduler {
     this.groupStatsRepo = new GroupStatsRepository(db);
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.timerId) return;
-    this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
+
+    // Load persisted target from DB
+    const rows = await this.db.select()
+      .from(schedulerState)
+      .where(eq(schedulerState.key, DB_KEY));
+
+    const row = rows[0];
+
+    if (row) {
+      const targetUtc = parseInt(row.value, 10);
+      const delayMs = targetUtc - Date.now();
+      if (delayMs > 0) {
+        // Resume existing schedule
+        this.resumeAt(targetUtc);
+        return;
+      }
+      // Target already passed (bot was down during the window) — schedule next window soon
+      await this.scheduleNext(0);
+    } else {
+      // First ever nudge — schedule 7 days out
+      await this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
+    }
   }
 
   stop(): void {
@@ -94,19 +118,38 @@ export class NudgeScheduler {
       this.timerId = null;
       logger.info('Nudge scheduler stopped');
     }
+    // Do NOT clear DB — reconnect should resume the same target
   }
 
-  private scheduleNext(extraDays = 0): void {
+  private resumeAt(targetUtc: number): void {
+    const delayMs = targetUtc - Date.now();
+    const delayHours = (delayMs / 3_600_000).toFixed(1);
+    const targetTime = new Date(targetUtc).toISOString();
+
+    logger.info({ delayHours, targetTime }, 'Resuming nudge schedule');
+
+    this.timerId = setTimeout(async () => {
+      await this.sendNudges();
+      await this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
+    }, delayMs);
+  }
+
+  private async scheduleNext(extraDays = 0): Promise<void> {
     const delayMs = msUntilNextWindow(extraDays);
-    const delayHours = (delayMs / (60 * 60 * 1000)).toFixed(1);
-    const targetTime = new Date(Date.now() + delayMs).toISOString();
+    const targetUtc = Date.now() + delayMs;
+    const delayHours = (delayMs / 3_600_000).toFixed(1);
+    const targetTime = new Date(targetUtc).toISOString();
+
+    // Persist target to DB so reconnections can resume
+    await this.db.insert(schedulerState)
+      .values({ key: DB_KEY, value: String(targetUtc) })
+      .onConflictDoUpdate({ target: schedulerState.key, set: { value: String(targetUtc) } });
 
     logger.info({ delayHours, targetTime, intervalDays: NUDGE_INTERVAL_DAYS }, 'Next nudge scheduled');
 
     this.timerId = setTimeout(async () => {
       await this.sendNudges();
-      // Schedule the next nudge NUDGE_INTERVAL_DAYS from now (skip extra days)
-      this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
+      await this.scheduleNext(NUDGE_INTERVAL_DAYS - 1);
     }, delayMs);
   }
 

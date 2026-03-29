@@ -77,7 +77,7 @@ async function main() {
       if (socket) {
         registerMessageHandler(socket, registry, activationManager);
         registerWelcomeHandler(socket, activationManager);
-        nudgeScheduler.start();
+        nudgeScheduler.start().catch(err => logger.error({ err }, 'Failed to start nudge scheduler'));
         logger.info('Message handler, welcome handler, and nudge scheduler registered.');
       }
     }

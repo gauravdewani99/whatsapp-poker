@@ -80,6 +80,11 @@ export const feedback = pgTable('feedback', {
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const schedulerState = pgTable('scheduler_state', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+
 export const actions = pgTable('actions', {
   id: serial('id').primaryKey(),
   handId: integer('hand_id').notNull().references(() => hands.id),

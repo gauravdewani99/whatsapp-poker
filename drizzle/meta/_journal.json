@@ -8,6 +8,13 @@
       "when": 1773007114317,
       "tag": "0000_smart_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774789327070,
+      "tag": "0001_supreme_onslaught",
+      "breakpoints": true
     }
   ]
 }
